@@ -67,7 +67,8 @@ include { MERGE_JSON as MERGE_JSON_MULTI }                                      
 //
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
 
-include { INPUT_CHECK } from '../subworkflows/local/input_check'
+include { INPUT_CHECK }                 from '../subworkflows/local/input_check'
+include { MHC_BINDING_PREDICTION }      from '../subworkflows/local/mhc_binding_prediction'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -78,9 +79,10 @@ include { INPUT_CHECK } from '../subworkflows/local/input_check'
 //
 // MODULE: Installed directly from nf-core/modules
 //
+// TODO: Add subworkflow for querying biomart to come up with potential neoepitopes
+// TODO: Add subfworkflow for MHC binding prediction
 include { MULTIQC                     } from '../modules/nf-core/multiqc/main'
 include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
-include { GUNZIP as GUNZIP_VCF        } from '../modules/nf-core/gunzip/main'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -111,51 +113,27 @@ workflow EPITOPEPREDICTION {
     )
     ch_versions = ch_versions.mix(INPUT_CHECK.out.versions)
 
-    INPUT_CHECK.out.reads
+    INPUT_CHECK.out.metadata_and_files
                 .branch {
-                    meta_data, input_file ->
-                        variant_compressed : meta_data.inputtype == 'variant_compressed'
-                            return [ meta_data, input_file ]
-                        variant_uncompressed :  meta_data.inputtype == 'variant'
-                            return [ meta_data, input_file ]
-                        peptide :  meta_data.inputtype == 'peptide'
-                            return [ meta_data, input_file ]
-                        protein :  meta_data.inputtype == 'protein'
-                            return [ meta_data, input_file ]
+                    metadata, file ->
+                        variant :  metadata.file_type == 'variant'
+                            return [ metadata, file ]
+                        peptide :  metadata.file_type == 'peptide'
+                            return [ metadata, file ]
+                        protein :  metadata.file_type == 'protein'
+                            return [ metadata, file ]
                     }
                 .set { ch_samples_from_sheet }
 
-    // gunzip variant files
-    GUNZIP_VCF (
-        ch_samples_from_sheet.variant_compressed
-    )
-    ch_versions = ch_versions.mix(GUNZIP_VCF.out.versions)
+    MHC_BINDING_PREDICTION( ch_samples_from_sheet.peptide )
 
-    ch_variants_uncompressed = GUNZIP_VCF.out.gunzip
-        .mix(ch_samples_from_sheet.variant_uncompressed)
-
-
-    // (re)combine different input file types
-    ch_samples_uncompressed = ch_samples_from_sheet.protein
-        .mix(ch_samples_from_sheet.peptide)
-        .mix(ch_variants_uncompressed)
-        .branch {
-                meta_data, input_file ->
-                variant :  meta_data.inputtype == 'variant' | meta_data.inputtype == 'variant_compressed'
-                peptide :  meta_data.inputtype == 'peptide'
-                protein :  meta_data.inputtype == 'protein'
-            }
-
-    tools = params.tools?.tokenize(',')
-
+    '''
     if (tools.isEmpty()) { exit 1, "No valid tools specified." }
 
+    // TODO: Extract that to netmhc module
     if (params.conda.enabled && params.tools.contains("netmhc")) {
             log.warn("Please note: if you want to use external prediction tools with conda it might be necessary to set --netmhc_system to darwin depending on your system.")
     }
-
-    c_purple = params.monochrome_logs ? '' : "\033[0;35m";
-    c_reset = params.monochrome_logs ? '' : "\033[0m";
 
     // get versions of specified external tools
     ch_external_versions = Channel
@@ -207,6 +185,9 @@ workflow EPITOPEPREDICTION {
         ch_prediction_tool_versions
     )
 
+    // TODO: Come up with tool specific warnings regarding supported alleles etc
+    c_purple = params.monochrome_logs ? '' : "\033[0;35m";
+    c_reset = params.monochrome_logs ? '' : "\033[0m";
     // Return a warning if this is raised
     EPYTOPE_CHECK_REQUESTED_MODELS
         .out
@@ -461,6 +442,7 @@ workflow EPITOPEPREDICTION {
     )
     multiqc_report = MULTIQC.out.report.toList()
     }
+    '''
 }
 
 /*
