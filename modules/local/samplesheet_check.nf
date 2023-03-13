@@ -11,7 +11,7 @@ process SAMPLESHEET_CHECK {
     path samplesheet
 
     output:
-    path '*.csv'       , emit: csv
+    path '*.tsv'       , emit: tsv
     path "versions.yml", emit: versions
 
     when:
@@ -21,7 +21,7 @@ process SAMPLESHEET_CHECK {
     """
     check_samplesheet.py \\
         $samplesheet \\
-        samplesheet.valid.csv
+        samplesheet.valid.tsv
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
