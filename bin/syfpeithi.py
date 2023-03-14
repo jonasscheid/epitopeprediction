@@ -14,14 +14,15 @@ def parse_args(argv=None) -> typing.List[str]:
     :param argv: list of arguments
     :return: parsed arguments
     """
+    required = True if '--version' not in sys.argv else False
     parser = argparse.ArgumentParser(description='Predicting epitopes using Syfpeithi with the epytope framework')
-    parser.add_argument('--input', required=True, help='Input file containing the protein sequences')
-    parser.add_argument('--alleles', required=True, help='Input string containing the alleles')
-    parser.add_argument('--output', required=True, help='Output file containing the predicted epitopes')
+    parser.add_argument('--input', required=required, help='Input file containing the protein sequences')
+    parser.add_argument('--alleles', required=required, help='Input string containing the alleles')
+    parser.add_argument('--output', required=required, help='Output file containing the predicted epitopes')
     parser.add_argument('--min_peptide_length', type=int, default=8, help='Minimum length of the peptides')
     parser.add_argument('--max_peptide_length', type=int, default=12, help='Maximum length of the peptides')
     parser.add_argument('--threshold', type=float, default=50, help='Threshold for the prediction')
-    parser.add_argument('--version', action='store_true', default=1.0, help='Tool version')
+    parser.add_argument('--version', action='store_true', help='Tool version')
 
     return parser.parse_args(argv)
 
