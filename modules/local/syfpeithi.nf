@@ -16,20 +16,21 @@ process SYFPEITHI {
 
     script:
     def min_length = (metadata.mhc_class == "I") ? params.min_peptide_length_mhc_I : params.min_peptide_length_mhc_II
-    def max_length = (meta.mhcclass == "I") ? params.max_peptide_length_mhc_I : params.max_peptide_length_mhc_II
+    def max_length = (metadata.mhcclass == "I") ? params.max_peptide_length_mhc_I : params.max_peptide_length_mhc_II
 
     // TODO: Threshold?
     """
     syfpeithi.py --input ${peptide_file} \\
-    --min_length ${min_length} \\
-    --max_length ${max_length} \\
-    --threshold 50 \\
-    --output '${prefix}_predicted_syfpeithi.tsv' \\
+        --alleles ${metadata.alleles} \\
+        --min_peptide_length ${min_length} \\
+        --max_peptide_length ${max_length} \\
+        --threshold 50 \\
+        --output '${metadata.sample}_predicted_syfpeithi.tsv' \\
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         epytope: \$(python -c "import pkg_resources; print(pkg_resources.get_distribution('epytope').version)")
-        syfpeithi: \$(python syfpeithi.py --version)
+        syfpeithi: \$(python syfpeithi.py --version | tail -1)
     END_VERSIONS
     """
 

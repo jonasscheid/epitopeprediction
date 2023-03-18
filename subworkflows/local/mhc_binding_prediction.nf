@@ -5,6 +5,8 @@
 include { SYFPEITHI } from '../../modules/local/syfpeithi'
 include { MHCFLURRY } from '../../modules/local/mhcflurry'
 include { MHCNUGGETS } from '../../modules/local/mhcnuggets'
+include { NETMHCPAN } from '../../modules/local/netmhcpan'
+include { NETMHCIIPAN } from '../../modules/local/netmhciipan'
 
 workflow MHC_BINDING_PREDICTION {
     take:
@@ -30,6 +32,17 @@ workflow MHC_BINDING_PREDICTION {
         MHCNUGGETS ( metadata_and_file )
         ch_versions = ch_versions.mix(MHCNUGGETS.out.versions)
         }
+        if ( "netmhcpan" in tools )
+        {
+            NETMHCPAN (metadata_and_file)
+            ch_versions = ch_versions.mix(NETMHCPAN.out.versions)
+        }
+        if ( "netmhciipan" in tools )
+        {
+            NETMHCIIPAN (metadata_and_file)
+            ch_versions = ch_versions.mix(NETMHCIIPAN.out.versions)
+        }
+
 
 
         // TODO: Combine output
