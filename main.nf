@@ -44,7 +44,7 @@ workflow NFCORE_EPITOPEPREDICTION {
 //
 // WORKFLOW: Execute a single named workflow for the pipeline
 // See: https://github.com/nf-core/rnaseq/issues/619
-//
+// this line is modified by Alina :)
 workflow {
     NFCORE_EPITOPEPREDICTION ()
 }
