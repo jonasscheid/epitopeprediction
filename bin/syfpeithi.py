@@ -9,6 +9,8 @@ from functools import reduce
 from epytope.Core import Allele, Peptide
 from epytope.EpitopePrediction import EpitopePredictorFactory, Syfpeithi
 
+#basic logging
+#logging.basicConfig(filename='syfpeithi.log', filemode='w',level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s', force=True)
 
 def parse_args(argv=None) -> typing.List[str]:
     """

@@ -15,22 +15,28 @@ process MHCFLURRY {
     path "versions.yml", emit: versions
 
     script:
-    def min_length = (metadata.mhc_class == "I") ? params.min_peptide_length_mhc_I : params.min_peptide_length_mhc_II
-    def max_length = (meta.mhcclass == "I") ? params.max_peptide_length_mhc_I : params.max_peptide_length_mhc_II
-
-    // TODO: Threshold?
     """
-    mhcflurry-prediction-placeholder
-
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        epytope: \$(python -c "import pkg_resources; print(pkg_resources.get_distribution('epytope').version)")
-    END_VERSIONS
+    touch mhcflurry_prediction.log
     """
+    if (metadata.mhc_class == "II")
+        """
+        echo "Mhcflurry prediction is not possible with MHCClass II"
+        """
+
+    if (metadata.mhc_class == "I")
+        """
+        mhcflurry_prediction.py --input ${peptide_file} --output '${metadata.sample}_predicted_mhcflurry.tsv' --alleles '${metadata.alleles}'
+
+        cat <<-END_VERSIONS > versions.yml
+        "${task.process}":
+            mhcflurry: \$(mhcflurry-predict --version)
+            mhcgnomes: \$(python -c "from mhcgnomes import version; print(version.__version__)")
+        END_VERSIONS
+        """
 
     stub:
     """
-    touch ${metadata.sample}_predicted_mhcflurry.tsv
+    mhcflurry_prediction.py --input ${peptide_file} --output '${metadata.sample}_predicted_mhcflurry.tsv' --alleles '${metadata.alleles}'
     touch versions.yml
     """
 }
