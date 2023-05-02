@@ -15,18 +15,17 @@ process MHCNUGGETS {
     path "versions.yml", emit: versions
 
     script:
-    def min_length = (metadata.mhc_class == "I") ? params.min_peptide_length_mhc_I : params.min_peptide_length_mhc_II
-    def max_length = (meta.mhcclass == "I") ? params.max_peptide_length_mhc_I : params.max_peptide_length_mhc_II
-
-    // TODO: Threshold?
     """
-    mhcnuggets-command-placeholder
+    touch mhcnuggets_prediction.log
+    mhcnuggets_prediction.py --input ${peptide_file} --output '${metadata.sample}_predicted_mhcnuggets.tsv' --alleles '${metadata.alleles}' --mhcclass ${metadata.mhc_class}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        epytope: \$(python -c "import pkg_resources; print(pkg_resources.get_distribution('epytope').version)")
     END_VERSIONS
     """
+
+    //mhcgnomes: \$(python -c "from mhcgnomes import version; print(version.__version__)")
+    //TODO mhcnuggets version hinzufügen -> mhcnuggets:  \$(echo "2.4.0")
 
     stub:
     """
