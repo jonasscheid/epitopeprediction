@@ -11,7 +11,7 @@ process MHCNUGGETS {
     tuple val(metadata), path(peptide_file)
 
     output:
-    tuple val(metadata), path("*.tsv"), emit: predicted
+    tuple val(metadata), path("*.tsv"), path("*.log"), emit: predicted
     path "versions.yml", emit: versions
 
     script:
@@ -29,6 +29,7 @@ process MHCNUGGETS {
 
     stub:
     """
+    touch mhcnuggets_prediction.log
     touch ${metadata.sample}_predicted_mhcnuggets.tsv
     touch versions.yml
     """

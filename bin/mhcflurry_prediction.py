@@ -53,15 +53,12 @@ def main():
 
     for a in alleles:
         for p in peptides:
-            #convert allele to MHC name standard with mhcgnomes
-            converted_a = mhcgnomes.parse(a).to_string()
             #check if allele is supported
-            if converted_a in supported_alleles:
+            if a in supported_alleles:
                 new_df = predictor_classI.predict(peptides=[p],alleles=[a]).reset_index(drop=True)
                 df = pd.concat([df, new_df],ignore_index=True, axis=0)
                 logging.debug("Prediction was made for allele " + a + " and peptide " + p + ".")
-            else:
-                logging.debug("Allele "+ a + " was converted by mhcgnomes to " + converted_a + " and is not supported by mhcflurry." )
+
 
     #make output pretty
     df = df.drop(columns=['sample_name'])
