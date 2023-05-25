@@ -11,6 +11,7 @@ import re
 import csv
 from pathlib import Path
 from collections import Counter
+import mhcgnomes
 
 logger = logging.getLogger()
 
@@ -238,8 +239,16 @@ def check_samplesheet(file_in, file_out):
         ## Check samplesheet entries
         checker = RowChecker()
         rows = []
+
         for i, row in enumerate(reader):
             checker.validate(row)
+            
+            ## Parsing allele names to mhcgnomes convention
+            alleles = row[1]
+            alleles = [mhcgnomes.parse(a).to_string() for a in alleles.split(';')]
+            #join elements of list in a string separated by ';'
+            row[1] = ';'.join(alleles)
+
             row.append(get_file_type(row[3]))
             rows.append(row)
 

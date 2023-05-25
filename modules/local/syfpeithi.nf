@@ -21,7 +21,7 @@ process SYFPEITHI {
     // TODO: Threshold?
     """
     syfpeithi.py --input ${peptide_file} \\
-        --alleles ${metadata.alleles} \\
+        --alleles '${metadata.alleles}' \\
         --min_peptide_length ${min_length} \\
         --max_peptide_length ${max_length} \\
         --threshold 50 \\
