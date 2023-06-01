@@ -107,7 +107,8 @@ def main():
 
     # Merge all allele specific predictions
     predictions_df = reduce(lambda left, right: pd.merge(left, right, on=['sequence'], how='outer'), predictions_per_allele)
-
+    #change column name of df
+    predictions_df.rename(columns={'sequence': 'peptide'}, inplace=True)
     # Write output
     predictions_df.to_csv(args.output, sep='\t', index=False)
 

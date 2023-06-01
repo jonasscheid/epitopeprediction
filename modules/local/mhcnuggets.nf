@@ -11,7 +11,7 @@ process MHCNUGGETS {
     tuple val(metadata), path(peptide_file)
 
     output:
-    tuple val(metadata), path("*.tsv"), path("*.log"), emit: predicted
+    tuple val(metadata), path("*.tsv"), emit: predicted
     path "versions.yml", emit: versions
 
     script:
