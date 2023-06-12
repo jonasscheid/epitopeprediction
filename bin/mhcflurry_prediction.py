@@ -5,7 +5,6 @@ import pandas as pd
 import typing
 import sys
 from mhcflurry import Class1PresentationPredictor
-import mhcgnomes
 import logging
 import subprocess
 
