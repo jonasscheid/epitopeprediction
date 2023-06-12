@@ -33,42 +33,42 @@ def parse_args(argv=None) -> typing.List[str]:
 def main():
     args = parse_args()
     input_file = pd.read_csv(args.input, sep='\t')
-    #collect all alleles and peptide for the sample
     alleles = args.alleles.split(';')
     peptides = input_file['sequence'].to_list()
 
-    #fetch model if it's not already downloaded
-    #saved in container at /root/.local/share/mhcflurry/4/2.0.0/models_class1/
-    p = subprocess.call(['mhcflurry-downloads', 'path', 'models_class1'],stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    if p == 0:
-        subprocess.run(['mhcflurry-downloads', 'fetch', 'models_class1'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-
-    #load predictor and get supported alleles
+    # fetch model if it's not already downloaded
+    model_already_dowloaded = subprocess.call(['mhcflurry-downloads', 'path', 'models_class1_presentation'],stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if model_already_dowloaded != 0:
+        download_model = subprocess.run(['mhcflurry-downloads', 'fetch', 'models_class1_presentation'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        if download_model.returncode != 0:
+            for line in download_model.stdout.decode().splitlines():
+                logging.error(line)
+            raise RuntimeError("mhcflurry failed to download model file")
+    # load predictor and get supported alleles
     predictor_classI = Class1PresentationPredictor.load()
     supported_alleles = predictor_classI.supported_alleles
 
-    #generate head of dataframe
-    df = pd.DataFrame({"peptide":[],"peptide_num":[],"sample_name":[],"affinity":[],"best_allele":[],"processing_score":[],"presentation_score":[],"presentation_percentile":[]}).reset_index(drop=True)
-
+    # predict for each allele and peptide
+    tmp_dfs = []
     for a in alleles:
-        for p in peptides:
-            #check if allele is supported
-            if a in supported_alleles:
-                new_df = predictor_classI.predict(peptides=[p],alleles=[a]).reset_index(drop=True)
-                df = pd.concat([df, new_df],ignore_index=True, axis=0)
+        if a in supported_alleles:
+            for p in peptides:
+                tmp_df = predictor_classI.predict(peptides=[p],alleles=[a]).reset_index(drop=True)
+                tmp_dfs.append(tmp_df)
                 logging.debug("Prediction was made for allele " + a + " and peptide " + p + ".")
+        else:
+            logging.warning("Allele " + a + " is not supported by mhcflurry. No prediction was made.")
 
-
-    #make output pretty
-    df = df.drop(columns=['sample_name'])
+    df = pd.concat(tmp_dfs, ignore_index=True, axis=0).reset_index(drop=True)
+    # clean up
+    df = df.rename(columns={'best_allele': 'allele'})
     df = df.drop(columns=['peptide_num'])
-    df = df.rename(columns={"best_allele":"allele"})
-
-    #join the information on one peptide into one row
-    df = df.pivot(index='peptide', columns=['allele'], values=['affinity', 'processing_score', 'presentation_score', 'presentation_percentile'])
-    #join the multiple columns
+    df = df.drop_duplicates(subset=['peptide', 'allele'])
+    # join the information on one peptide into one row -> wide format
+    df = df.pivot(index='peptide', columns='allele', values=['affinity', 'processing_score', 'presentation_score', 'presentation_percentile'])
+    # join the multiple columns
     df.columns = df.columns.map('_'.join).str.strip('_')
-    #generate peptide column
+    # generate peptide column
     df = df.rename_axis('peptide').reset_index()
     #write joined df to output file
     df.to_csv(args.output, sep='\t', index=False)

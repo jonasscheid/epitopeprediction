@@ -7,7 +7,7 @@ include { MHCFLURRY } from '../../modules/local/mhcflurry'
 include { MHCNUGGETS } from '../../modules/local/mhcnuggets'
 include { NETMHCPAN } from '../../modules/local/netmhcpan'
 include { NETMHCIIPAN } from '../../modules/local/netmhciipan'
-include { MERGEPREDICTIONS } from '../../modules/local/mergepredictions'
+include { MERGE_PREDICTIONS } from '../../modules/local/merge_predictions'
 
 
 workflow MHC_BINDING_PREDICTION {
@@ -57,7 +57,7 @@ workflow MHC_BINDING_PREDICTION {
     ch_combined_predictions = ch_combined_predictions.map{ it -> [it[0], it[2..-1]]}
 
     //merge the prediction output of all tools into one output merged_prediction.tsv
-    MERGEPREDICTIONS (ch_combined_predictions)
+    MERGE_PREDICTIONS (ch_combined_predictions)
 
 
     emit: ch_combined_predictions
