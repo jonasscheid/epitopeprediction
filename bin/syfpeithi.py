@@ -50,13 +50,13 @@ def get_matrix_max_score(allele, length) -> float:
         return np.nan
 
 
-def compute_half_max_score(row, allele, matrix_max_score_dict) -> float:
+def rel_max_score(row, allele, matrix_max_score_dict) -> float:
     """
-    Compute the half-max-score of a peptide for a specific allele
+    Compute the peptide score relative to the maximum matrix score for a given allele
     :param row: row of the input dataframe
-    :param allele: allele for which the half-max-score should be computed
+    :param allele: allele for which the rel-max-score should be computed
     :param matrix_max_score_dict: dict containing the maximum scores of the Syfpeithi matrices
-    :return: half-max-score of the peptide for the allele
+    :return: rel-max-score of the peptide for the allele
     """
     # Syfpeithi supports only specific peptide length and allele combinations
     if len(row['sequence']) not in matrix_max_score_dict[allele].keys():
@@ -100,9 +100,7 @@ def main():
         # Rename accordingly for downstream handling
         allele_df.rename({'Score': allele, 'Peptides': 'sequence'}, axis=1, inplace=True)
         # Compute half-max-score
-        allele_df[allele] = allele_df.apply(lambda x: compute_half_max_score(x, allele, matrix_max_score_dict), axis=1)
-        # Add column with boolean value if peptide is a binder
-        allele_df[f"{allele}_binder"] = allele_df[allele] >= args.threshold
+        allele_df[allele] = allele_df.apply(lambda x: rel_max_score(x, allele, matrix_max_score_dict), axis=1)
         predictions_per_allele.append(allele_df)
 
     # Merge all allele specific predictions
