@@ -20,6 +20,7 @@ process SYFPEITHI {
 
     // TODO: Threshold?
     """
+    touch syfpeithi_prediction.log
     syfpeithi.py --input ${peptide_file} \\
         --alleles '${metadata.alleles}' \\
         --min_peptide_length ${min_length} \\

@@ -50,14 +50,14 @@ def main():
 
     # predict for each allele and peptide
     tmp_dfs = []
-    for a in alleles:
-        if a in supported_alleles:
-            for p in peptides:
-                tmp_df = predictor_classI.predict(peptides=[p],alleles=[a]).reset_index(drop=True)
+    for allele in alleles:
+        if allele in supported_alleles:
+            for peptide in peptides:
+                tmp_df = predictor_classI.predict(peptides=[peptide],alleles=[allele]).reset_index(drop=True)
                 tmp_dfs.append(tmp_df)
-                logging.debug("Prediction was made for allele " + a + " and peptide " + p + ".")
+                logging.debug(f'Prediction was made for allele {allele} and peptide {peptide}.')
         else:
-            logging.warning("Allele " + a + " is not supported by mhcflurry. No prediction was made.")
+            logging.warning(f'Allele {allele} is not supported by mhcflurry. No prediction was made.')
 
     df = pd.concat(tmp_dfs, ignore_index=True, axis=0).reset_index(drop=True)
     # clean up

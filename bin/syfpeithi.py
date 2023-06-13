@@ -2,15 +2,15 @@
 
 import sys
 import argparse
+import logging
 import pandas as pd
 import numpy as np
 import typing
 from functools import reduce
 from epytope.Core import Allele, Peptide
-from epytope.EpitopePrediction import EpitopePredictorFactory, Syfpeithi
+from epytope.EpitopePrediction import EpitopePredictorFactory
 
-#basic logging
-#logging.basicConfig(filename='syfpeithi.log', filemode='w',level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s', force=True)
+logging.basicConfig(filename='syfpeithi.log', filemode='w',level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s', force=True)
 
 def parse_args(argv=None) -> typing.List[str]:
     """
@@ -77,7 +77,14 @@ def main():
 
     # Build epytope Objects of peptides and alleles
     peptides = [Peptide(peptide) for peptide in input_file['sequence'] if len(peptide) >= args.min_peptide_length and len(peptide) <= args.max_peptide_length]
-    alleles = [Allele(allele) for allele in args.alleles.split(';')]
+    # Check if alleles are supported by the predictor
+    alleles = []
+    for allele in args.alleles.split(';'):
+        epytope_allele = Allele(allele)
+        if epytope_allele not in predictor.supportedAlleles:
+            logging.warning(f'Allele {allele} is not supported by syfpeithi. No prediction was made.')
+            continue
+        alleles.append(epytope_allele)
 
     # Fill a dict of dicts: {allele1: {length1: max_score_length1, length2:max_score_length1}, allele2:.. }
     matrix_max_score_dict = {}
