@@ -19,27 +19,19 @@ process EXTERNAL_TOOLS_IMPORT {
     script:
     """
     #
-    # CHECK IF THE PROVIDED SOFTWARE TARBALL IS A REGULAR FILES
-    #
-    if [ ! -f "$tooltarball" ]; then
-        echo "Path specified for ${toolname} does not point to a regular file. Please specify a path to the original tool tarball." >&2
-        exit 1
-    fi
-
-    #
     # VALIDATE THE CHECKSUM OF THE PROVIDED SOFTWARE TARBALL
     #
     checksum="\$(md5sum "$tooltarball" | cut -f1 -d' ')"
     echo "\$checksum"
     if [ "\$checksum" != "${toolchecksum}" ]; then
-        echo "Checksum error for $toolname. Please make sure to provide the original tarball for $toolname version $toolversion" >&2
+        echo "Checksum error for $toolname. Please make sure to provide the original tarball for $toolname" >&2
         exit 2
     fi
 
     #
     # UNPACK THE PROVIDED SOFTWARE TARBALL
     #
-    mkdir -v "${toolname}"
+    mkdir "${toolname}"
     tar -C "${toolname}" --strip-components 1 -x -f "$tooltarball"
 
     #
@@ -49,7 +41,7 @@ process EXTERNAL_TOOLS_IMPORT {
     # Substitution 3: NMHOME should be the folder in which the tcsh script itself resides
     #
     sed -i.bak \
-        -e 's_bin/tcsh.*\$_usr/bin/env tcsh_' \
+        -e 's_bin/tcsh.*\$_opt/conda/bin/tcsh_' \
         -e "s_/scratch_/tmp_" \
         -e "s_setenv[[:space:]]NMHOME.*_setenv NMHOME \\`realpath -s \\\$0 | sed -r 's/[^/]+\$//'\\`_ " "${toolname}/${toolbinaryname}"
 

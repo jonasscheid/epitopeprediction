@@ -1,5 +1,5 @@
 process MHCFLURRY {
-    label 'process_low'
+    label 'process_single'
     tag "${metadata.sample}"
 
     conda "bioconda::mhcflurry=2.0.6"
@@ -15,24 +15,22 @@ process MHCFLURRY {
     path "versions.yml", emit: versions
 
     script:
+
+    if (metadata.mhc_class == "II") {
+        error("MHCflurry prediction of ${metadata.sample} is not possible with MHC class II!")
+    }
+
     """
     touch mhcflurry_prediction.log
+
+    mhcflurry_prediction.py --input ${peptide_file} --output '${metadata.sample}_predicted_mhcflurry.tsv' --alleles '${metadata.alleles}'
+
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        mhcflurry: \$(mhcflurry-predict --version)
+        mhcgnomes: \$(python -c "from mhcgnomes import version; print(version.__version__)")
+    END_VERSIONS
     """
-    if (metadata.mhc_class == "II")
-        """
-        echo "Mhcflurry prediction is not possible with MHCClass II"
-        """
-
-    if (metadata.mhc_class == "I")
-        """
-        mhcflurry_prediction.py --input ${peptide_file} --output '${metadata.sample}_predicted_mhcflurry.tsv' --alleles '${metadata.alleles}'
-
-        cat <<-END_VERSIONS > versions.yml
-        "${task.process}":
-            mhcflurry: \$(mhcflurry-predict --version)
-            mhcgnomes: \$(python -c "from mhcgnomes import version; print(version.__version__)")
-        END_VERSIONS
-        """
 
     stub:
     """

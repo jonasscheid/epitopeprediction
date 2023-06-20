@@ -8,19 +8,20 @@ process EPYTOPE_GENERATE_PEPTIDES {
         'quay.io/biocontainers/epytope:3.1.0--pyh5e36f6f_0' }"
 
     input:
-    tuple val(meta), path(raw)
+    tuple val(meta), path(fasta)
 
     output:
     tuple val(meta), path("*.tsv"), emit: splitted
     path "versions.yml", emit: versions
 
     script:
-    def prefix = task.ext.suffix ? "${meta.sample}_${task.ext.suffix}" : "${meta.sample}_peptides"
-    def min_length = (meta.mhcclass == "I") ? params.min_peptide_length : params.min_peptide_length_class2
-    def max_length = (meta.mhcclass == "I") ? params.max_peptide_length : params.max_peptide_length_class2
+    def prefix = fasta.baseName
+    // TODO: make this configurable -> somehow doesnt work
+    def min_length = (meta.mhc_class == "I") ? params.min_peptide_length_mhc_I : params.min_peptide_length_mhc_II
+    def max_length = (meta.mhc_class == "I") ? params.max_peptide_length_mhc_I : params.max_peptide_length_mhc_II
 
     """
-    gen_peptides.py --input ${raw} \\
+    gen_peptides.py --input ${fasta} \\
     --max_length ${max_length} \\
     --min_length ${min_length} \\
     --output '${prefix}.tsv' \\
