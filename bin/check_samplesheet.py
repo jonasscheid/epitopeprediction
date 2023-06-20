@@ -2,7 +2,6 @@
 
 
 import argparse
-import logging
 import os
 import re
 import sys
@@ -12,8 +11,6 @@ import csv
 from pathlib import Path
 from collections import Counter
 import mhcgnomes
-
-logger = logging.getLogger()
 
 
 class RowChecker:
@@ -137,25 +134,32 @@ class RowChecker:
 def get_file_type(file):
     """ Read file extension and return file type"""
     extension = file.split(".")[-1]
-    if extension == 'vcf':
-        file_type = 'variant'
-    elif extension == 'fasta':
-        file_type = 'protein'
-    elif extension in ['tsv', 'GSvar']:
-        # Check if the file is a variant annotation file or a peptide file
-        header_columns = [col.strip() for col in open(file, 'r').readlines()[0].split('\t')]
+    #check input file is empty
+    if len(open(file, 'r').readlines()) == 0:
+        raise AssertionError(f"Input file {file} is empty.")
 
-        required_variant_columns = ['#chr', 'start', 'end']
-
-        file_type = 'peptide'
-
-        if all(col in required_variant_columns for col in header_columns):
+    try:
+        if extension == 'vcf':
             file_type = 'variant'
-        elif 'sequence' not in header_columns:
+        elif extension == 'fasta':
+            file_type = 'protein'
+        elif extension in ['tsv', 'GSvar']:
+            # Check if the file is a variant annotation file or a peptide file
+            header_columns = [col.strip() for col in open(file, 'r').readlines()[0].split('\t')]
+
+            required_variant_columns = ['#chr', 'start', 'end']
+
+            file_type = 'peptide'
+
+            if all(col in required_variant_columns for col in header_columns):
+                file_type = 'variant'
+            elif 'sequence' not in header_columns:
                 raise AssertionError("Peptide input file does not contain mandatory column 'sequence'")
 
-    return file_type
+        return file_type
 
+    except Exception as e:
+        raise AssertionError(f"Error with checking samplesheet: {e}. Check correct format for input file {file} in documentation.")
 
 def parse_args(argv=None):
     """Define and immediately parse command line arguments."""
@@ -198,7 +202,6 @@ def make_dir(path):
             if exception.errno != errno.EEXIST:
                 raise exception
 
-# TODO: Check if peptide
 def check_samplesheet(file_in, file_out):
 
     """
@@ -234,8 +237,7 @@ def check_samplesheet(file_in, file_out):
         if len(header) != 4:
             raise ValueError(f"Invalid number of header columns! Make sure the samplesheet is properly tab-separated.")
         elif header != valid_header:
-            raise AssertionError(
-                f"Invalid samplesheet header (valid = {valid_header})!")
+            raise AssertionError(f"Invalid samplesheet header (valid = {valid_header})!")
 
         ## Check samplesheet entries
         checker = RowChecker()
@@ -268,11 +270,10 @@ def check_samplesheet(file_in, file_out):
 def main(argv=None):
     """Coordinate argument parsing and program execution."""
     args = parse_args(argv)
-    logging.basicConfig(level=args.log_level, format="[%(levelname)s] %(message)s")
     if not args.file_in.is_file():
-        logger.error(f"The given input file {args.file_in} does not exist!")
-        sys.exit(2)
+        raise AssertionError(f"The given input file {args.file_in} does not exist!")
     args.file_out.parent.mkdir(parents=True, exist_ok=True)
+
     check_samplesheet(args.file_in, args.file_out)
 
 

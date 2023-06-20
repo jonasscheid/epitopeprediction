@@ -15,9 +15,16 @@ process MHCNUGGETS {
     path "versions.yml", emit: versions
 
     script:
+    def prefix = "${metadata.sample}_${peptide_file.baseName}"
+    def min_length = (metadata.mhc_class == "I") ? params.min_peptide_length_mhc_I : params.min_peptide_length_mhc_II
+    def max_length = (metadata.mhc_class == "I") ? params.max_peptide_length_mhc_I : params.max_peptide_length_mhc_II
     """
-    touch mhcnuggets_prediction.log
-    mhcnuggets_prediction.py --input ${peptide_file} --output '${metadata.sample}_predicted_mhcnuggets.tsv' --alleles '${metadata.alleles}' --mhcclass ${metadata.mhc_class}
+    mhcnuggets_prediction.py --input ${peptide_file}\\
+        --output '${prefix}_predicted_mhcnuggets.tsv' \\
+        --alleles '${metadata.alleles}'\\
+        --min_peptide_length ${min_length} \\
+        --max_peptide_length ${max_length} \\
+        --mhcclass ${metadata.mhc_class}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

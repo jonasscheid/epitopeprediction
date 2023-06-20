@@ -27,7 +27,7 @@ process MERGE_PREDICTIONS {
 
     """
     merge_binding_predictions.py \
-        --input ${prediction_files} \
+        --input "${prediction_files}" \
         --output ${output}.tsv \
         --min_peptide_length ${min_length} \
         --max_peptide_length ${max_length} \

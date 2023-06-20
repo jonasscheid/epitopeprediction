@@ -68,8 +68,9 @@ include { MERGE_JSON as MERGE_JSON_MULTI }                                      
 //
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
 
-include { INPUT_CHECK }                 from '../subworkflows/local/input_check'
-include { MHC_BINDING_PREDICTION }      from '../subworkflows/local/mhc_binding_prediction'
+include { INPUT_CHECK }                                                             from '../subworkflows/local/input_check'
+include { MHC_BINDING_PREDICTION as MHC_BINDING_PREDICTION_PEP}                     from '../subworkflows/local/mhc_binding_prediction'
+include { MHC_BINDING_PREDICTION as MHC_BINDING_PREDICTION_PROTEIN}                 from '../subworkflows/local/mhc_binding_prediction'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -131,9 +132,9 @@ workflow EPITOPEPREDICTION {
 
     EPYTOPE_GENERATE_PEPTIDES( SEQKIT_SPLIT2.out.splitted.transpose() )
 
-    MHC_BINDING_PREDICTION( EPYTOPE_GENERATE_PEPTIDES.out.splitted )
+    MHC_BINDING_PREDICTION_PROTEIN( EPYTOPE_GENERATE_PEPTIDES.out.splitted )
 
-    //MHC_BINDING_PREDICTION( ch_samples_from_sheet.peptide )
+    MHC_BINDING_PREDICTION_PEP( ch_samples_from_sheet.peptide )
 
     '''
     if (tools.isEmpty()) { exit 1, "No valid tools specified." }

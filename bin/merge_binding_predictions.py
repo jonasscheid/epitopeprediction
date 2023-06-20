@@ -141,12 +141,34 @@ def main():
         prediction_result = PredictionResult(predictor, tmp_df, threshold)
         prediction_result.format_prediction_result()
         tmp_df = prediction_result.get_prediction_df()
-        # Filter peptides by length
-        tmp_df = tmp_df[tmp_df['sequence'].str.len().between(args.min_peptide_length, args.max_peptide_length)]
 
         tmp_dfs.append(tmp_df)
 
     df = pd.concat(tmp_dfs, axis=0, ignore_index=True)
+
+    '''
+    file_type = "peptide"
+    identifier_of_file_type = "peptide"
+    #open tsv file and get df
+    input_file = pd.read_csv(args.input_file, sep='\t')
+    #drop id column if it exists
+    if "id" in input_file.columns:
+        input_file = input_file.drop(columns=["id"])
+
+    df = pd.DataFrame({"sequence":[]})
+    for file in prediction_files:
+        tmp_df = pd.read_csv(file, sep='\t')
+        #rename peptide column to sequence
+        tmp_df = tmp_df.rename(columns={"peptide":"sequence"})
+        #add prefix to all columns except peptide
+        tmp_df.columns = [f'{predictor}_{col}' if col != "sequence" else col for col in tmp_df.columns]
+        df = pd.merge(df, tmp_df, on="sequence", how='outer')
+
+    #merge input file with prediction df
+    df = pd.merge(input_file, df, on="sequence", how='outer')
+    #write df to tsv
+    df.to_csv(f'{sample_name}_predictions.tsv', sep='\t', index=False)
+    '''
 
     #write df to tsv
     df.to_csv(f'{args.output}', sep='\t', index=False)

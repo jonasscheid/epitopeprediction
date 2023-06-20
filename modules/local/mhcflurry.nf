@@ -20,15 +20,21 @@ process MHCFLURRY {
         error("MHCflurry prediction of ${metadata.sample} is not possible with MHC class II!")
     }
 
-    """
-    touch mhcflurry_prediction.log
+    def prefix = "${metadata.sample}_${peptide_file.baseName}"
+    def min_length = (metadata.mhc_class == "I") ? params.min_peptide_length_mhc_I : params.min_peptide_length_mhc_II
+    def max_length = (metadata.mhc_class == "I") ? params.max_peptide_length_mhc_I : params.max_peptide_length_mhc_II
 
-    mhcflurry_prediction.py --input ${peptide_file} --output '${metadata.sample}_predicted_mhcflurry.tsv' --alleles '${metadata.alleles}'
+    """
+    mhcflurry_prediction.py --input ${peptide_file}\\
+        --output '${prefix}_predicted_mhcflurry.tsv'\\
+        --min_peptide_length ${min_length} \\
+        --max_peptide_length ${max_length} \\
+        --alleles '${metadata.alleles}'
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        mhcflurry: \$(mhcflurry-predict --version)
-        mhcgnomes: \$(python -c "from mhcgnomes import version; print(version.__version__)")
+        \$(mhcflurry-predict --version)
+        mhcgnomes \$(python -c "from mhcgnomes import version; print(version.__version__)")
     END_VERSIONS
     """
 

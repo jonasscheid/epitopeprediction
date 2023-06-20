@@ -10,9 +10,14 @@ import os
 import logging
 from mhcnuggets.src.predict import predict
 
-
-# Create a logger
-logging.basicConfig(filename='mhcnuggets_prediction.log', filemode='w',level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
+# instantiate global logger object
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+handler = logging.StreamHandler(sys.stdout)
+handler.setLevel(logging.DEBUG)
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 def parse_args(argv=None) -> typing.List[str]:
     """
@@ -25,6 +30,8 @@ def parse_args(argv=None) -> typing.List[str]:
     parser.add_argument('--input', required=required, help='Input file containing the protein sequences')
     parser.add_argument('--alleles', required=required, help='Input string containing the alleles')
     parser.add_argument('--output', required=required, help='Output file containing the predicted epitopes')
+    parser.add_argument('--min_peptide_length', type=int, default=8, help='Minimum length of the peptides')
+    parser.add_argument('--max_peptide_length', type=int, default=12, help='Maximum length of the peptides')
     parser.add_argument('--mhcclass', required=required, help='Get MHC Class of sample')
     parser.add_argument('--threshold', type=float, default=50, help='Threshold for the prediction')
     parser.add_argument('--version', action='store_true', help='Tool version')
@@ -34,8 +41,19 @@ def parse_args(argv=None) -> typing.List[str]:
 
 def main():
     args = parse_args()
+    min_length_given_by_mhcnuggets = 1
+    max_length_given_by_mhcnuggets = 15
+    if args.mhcclass == "II":
+        max_length_given_by_mhcnuggets = 30
+
     alleles = [allele.replace("*", "") for allele in args.alleles.split(';')]
     peptides = pd.read_csv(args.input, sep='\t')['sequence']
+
+    # remove peptides that are too short or too long
+    for peptide in peptides:
+        if len(peptide) not in set(range(args.min_peptide_length, args.max_peptide_length+1))&set(range(min_length_given_by_mhcnuggets, max_length_given_by_mhcnuggets+1)):
+            logger.warning(f'Peptide {peptide} does not have the right length. Skipping this peptide {peptide}.')
+            peptides = peptides[peptides != peptide].reset_index(drop=True)
 
     # Convert id and peptide tsv into one peptide per line without header
     with open('mhcnuggets_peptides.tsv', 'w+') as input:
@@ -59,7 +77,7 @@ def main():
                     allele_from_log = line.split(" ")[-1][:-1]
         os.remove('tmp_prediction.log')
         if allele != allele_from_log:
-            logging.warning(f'Allele {allele} not found. Closest allele found: {allele_from_log}')
+            logger.warning(f'Allele {allele} not found. Closest allele found: {allele_from_log}')
 
         # Read mhcnuggets output
         tmp_df = pd.read_csv(tmp_file_name_ranks)
@@ -69,7 +87,7 @@ def main():
         # Remove tmp files
         os.remove(tmp_file_name)
         os.remove(tmp_file_name_ranks)
-        
+
     df = pd.concat(tmp_dfs,ignore_index=True, axis=0)
     df = df.drop_duplicates(subset=['peptide', 'allele'])
     # long format -> wide format

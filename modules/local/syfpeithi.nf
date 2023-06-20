@@ -20,17 +20,18 @@ process SYFPEITHI {
     def max_length = (metadata.mhc_class == "I") ? params.max_peptide_length_mhc_I : params.max_peptide_length_mhc_II
 
     """
-    syfpeithi.py --input ${peptide_file} \\
+    syfpeithi_prediction.py --input ${peptide_file} \\
         --alleles '${metadata.alleles}' \\
         --min_peptide_length ${min_length} \\
         --max_peptide_length ${max_length} \\
-        --output '${prefix}_predicted_syfpeithi.tsv' \\
+        --output '${prefix}_predicted_syfpeithi.tsv'
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         python \$(python --version | sed 's/Python //g')
         epytope \$(python -c "import pkg_resources; print(pkg_resources.get_distribution('epytope').version)")
-        syfpeithi 1.0
+        syfpeithi \$(python -c "from epytope.EpitopePrediction import EpitopePredictorFactory; print(EpitopePredictorFactory('syfpeithi').version)")
+
     END_VERSIONS
     """
 }
