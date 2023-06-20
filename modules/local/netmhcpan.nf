@@ -30,7 +30,8 @@ process NETMHCPAN {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        \$(cat data/version | sed -s 's/ version/:/g')
+        python \$(python --version | sed 's/Python //g')
+        netmhcpan \$(cat data/version | sed -s 's/ version/:/g')
     END_VERSIONS
     """
 

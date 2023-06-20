@@ -141,17 +141,20 @@ def get_file_type(file):
     extension = file.split(".")[-1]
     if extension == 'vcf':
         file_type = 'variant'
+    elif extension == 'fasta':
+        file_type = 'protein'
     elif extension in ['tsv', 'GSvar']:
         # Check if the file is a variant annotation file or a peptide file
         header_columns = [col.strip() for col in open(file, 'r').readlines()[0].split('\t')]
-        if 'id' in header_columns:
-            if 'sequence' not in header_columns:
-                raise AssertionError("Peptide input file does not contain mandatory column 'sequence'")
-            file_type = 'peptide'
-        else:
+
+        required_variant_columns = ['#chr', 'start', 'end']
+
+        file_type = 'peptide'
+
+        if all(col in required_variant_columns for col in header_columns):
             file_type = 'variant'
-    else:
-        file_type = 'protein'
+        elif 'sequence' not in header_columns:
+                raise AssertionError("Peptide input file does not contain mandatory column 'sequence'")
 
     return file_type
 
@@ -242,7 +245,7 @@ def check_samplesheet(file_in, file_out):
 
         for i, row in enumerate(reader):
             checker.validate(row)
-            
+
             ## Parsing allele names to mhcgnomes convention
             alleles = row[1]
             alleles = [mhcgnomes.parse(a).to_string() for a in alleles.split(';')]

@@ -20,9 +20,9 @@ def parse_args(argv=None) -> typing.List[str]:
     """
     required = True if '--version' not in sys.argv else False
     parser = argparse.ArgumentParser(description='Predicting epitopes using Syfpeithi with the epytope framework')
-    parser.add_argument('--input', required=required, help='Input file containing the protein sequences')
-    parser.add_argument('--alleles', required=required, help='Input string containing the alleles')
-    parser.add_argument('--output', required=required, help='Output file containing the predicted epitopes')
+    parser.add_argument('--input', help='Input file containing the protein sequences')
+    parser.add_argument('--alleles', help='Input string containing the alleles')
+    parser.add_argument('--output', help='Output file containing the predicted epitopes')
     parser.add_argument('--min_peptide_length', type=int, default=8, help='Minimum length of the peptides')
     parser.add_argument('--max_peptide_length', type=int, default=12, help='Maximum length of the peptides')
     parser.add_argument('--threshold', type=float, default=50, help='Threshold for the prediction')
@@ -70,7 +70,9 @@ def main():
     args = parse_args()
     # Define MHC binding tool using the epytope framework
     predictor = EpitopePredictorFactory("Syfpeithi")
+    logging.debug("blub")
     if args.version:
+        logging.debug("blubb blubb")
         sys.exit(f"{predictor.version}")
 
     input_file = pd.read_csv(args.input, sep='\t')

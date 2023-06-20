@@ -22,6 +22,11 @@ workflow MHC_BINDING_PREDICTION {
 
         if (tools.isEmpty()) { exit 1, "No valid tools specified." }
 
+        //correct if tool names are not lowercase
+        tools = tools.collect{ it.toLowerCase() }
+        //correct if spaces were used
+        tools = tools.collect{ it.trim() }
+
         if ( "syfpeithi" in tools )
         {
         SYFPEITHI ( metadata_and_file )
@@ -55,6 +60,8 @@ workflow MHC_BINDING_PREDICTION {
 
     //remove the null (it[1]) in the channel output
     ch_combined_predictions = ch_combined_predictions.map{ it -> [it[0], it[2..-1]]}
+    //join metadata and input channel with metadata and output channel
+    ch_combined_predictions = ch_combined_predictions.join(metadata_and_file, remainder: true)
 
     //merge the prediction output of all tools into one output merged_prediction.tsv
     MERGE_PREDICTIONS (ch_combined_predictions)

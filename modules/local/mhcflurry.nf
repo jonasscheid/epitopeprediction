@@ -29,8 +29,9 @@ process MHCFLURRY {
 
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
-            mhcflurry: \$(mhcflurry-predict --version)
-            mhcgnomes: \$(python -c "from mhcgnomes import version; print(version.__version__)")
+            python \$(python --version | sed 's/Python //g')
+            \$(mhcflurry-predict --version)
+            mhcgnomes \$(python -c "from mhcgnomes import version; print(version.__version__)")
         END_VERSIONS
         """
 

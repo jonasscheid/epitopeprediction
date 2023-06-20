@@ -18,9 +18,9 @@ process SYFPEITHI {
     def min_length = (metadata.mhc_class == "I") ? params.min_peptide_length_mhc_I : params.min_peptide_length_mhc_II
     def max_length = (metadata.mhcclass == "I") ? params.max_peptide_length_mhc_I : params.max_peptide_length_mhc_II
 
-    // TODO: Threshold?
+    // eigentlich syfpeithi version nicht hardcoden  sondern \$(python -c "from epytope.EpitopePrediction import EpitopePredictorFactory; print(EpitopePredictorFactory("Syfpeithi").version)")
     """
-    touch syfpeithi_prediction.log
+    touch syfpeithi.log
     syfpeithi.py --input ${peptide_file} \\
         --alleles '${metadata.alleles}' \\
         --min_peptide_length ${min_length} \\
@@ -30,8 +30,9 @@ process SYFPEITHI {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        epytope: \$(python -c "import pkg_resources; print(pkg_resources.get_distribution('epytope').version)")
-        syfpeithi: \$(python syfpeithi.py --version | tail -1)
+        python \$(python --version | sed 's/Python //g')
+        epytope \$(python -c "import pkg_resources; print(pkg_resources.get_distribution('epytope').version)")
+        syfpeithi 1.0
     END_VERSIONS
     """
 

@@ -19,7 +19,7 @@ process SNPSIFT_SPLIT {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        snpsift: \$( echo \$(SnpSift split -h 2>&1) | sed 's/^.*version //' | sed 's/(.*//' | sed 's/t//g' )
+        snpsift \$( echo \$(SnpSift split -h 2>&1) | sed 's/^.*version //' | sed 's/(.*//' | sed 's/t//g' )
     END_VERSIONS
     """
 }

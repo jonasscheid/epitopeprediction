@@ -21,6 +21,9 @@ process MHCNUGGETS {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
+        python \$(python --version | sed 's/Python //g')
+        mhcnuggets \$(python -c "import pkg_resources; print(pkg_resources.get_distribution('mhcnuggets').version)")
+
     END_VERSIONS
     """
 

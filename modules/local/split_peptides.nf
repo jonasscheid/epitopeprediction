@@ -23,7 +23,7 @@ process SPLIT_PEPTIDES {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        python: \$(python --version | sed 's/Python //g')
+        python \$(python --version | sed 's/Python //g')
     END_VERSIONS
     """
 }
