@@ -48,6 +48,7 @@ include { EPYTOPE_SHOW_SUPPORTED_MODELS }                                       
 include { VARIANT_SPLIT}                                                            from '../modules/local/variant_split'
 include { SNPSIFT_SPLIT}                                                            from '../modules/local/snpsift_split'
 include { CSVTK_SPLIT}                                                              from '../modules/local/csvtk_split'
+include { SEQKIT_SPLIT2}                                                            from '../modules/local/seqkit_split2'
 
 include { EPYTOPE_GENERATE_PEPTIDES }                                               from '../modules/local/epytope_generate_peptides'
 include { SPLIT_PEPTIDES }                                                          from '../modules/local/split_peptides'
@@ -125,7 +126,14 @@ workflow EPITOPEPREDICTION {
                     }
                 .set { ch_samples_from_sheet }
 
-    MHC_BINDING_PREDICTION( ch_samples_from_sheet.peptide )
+    // Split fasta into chunks of 100 proteins to facilitate parallelization
+    SEQKIT_SPLIT2 ( ch_samples_from_sheet.protein )
+
+    EPYTOPE_GENERATE_PEPTIDES( SEQKIT_SPLIT2.out.splitted.transpose() )
+
+    MHC_BINDING_PREDICTION( EPYTOPE_GENERATE_PEPTIDES.out.splitted )
+
+    //MHC_BINDING_PREDICTION( ch_samples_from_sheet.peptide )
 
     '''
     if (tools.isEmpty()) { exit 1, "No valid tools specified." }

@@ -1,5 +1,5 @@
 process SYFPEITHI {
-    label 'process_low'
+    label 'process_single'
     tag "${metadata.sample}"
 
     conda "bioconda::epytope=3.1.0"
@@ -15,18 +15,16 @@ process SYFPEITHI {
     path "versions.yml", emit: versions
 
     script:
+    def prefix = "${metadata.sample}_${peptide_file.baseName}"
     def min_length = (metadata.mhc_class == "I") ? params.min_peptide_length_mhc_I : params.min_peptide_length_mhc_II
-    def max_length = (metadata.mhcclass == "I") ? params.max_peptide_length_mhc_I : params.max_peptide_length_mhc_II
+    def max_length = (metadata.mhc_class == "I") ? params.max_peptide_length_mhc_I : params.max_peptide_length_mhc_II
 
-    // eigentlich syfpeithi version nicht hardcoden  sondern \$(python -c "from epytope.EpitopePrediction import EpitopePredictorFactory; print(EpitopePredictorFactory("Syfpeithi").version)")
     """
-    touch syfpeithi.log
     syfpeithi.py --input ${peptide_file} \\
         --alleles '${metadata.alleles}' \\
         --min_peptide_length ${min_length} \\
         --max_peptide_length ${max_length} \\
-        --threshold 50 \\
-        --output '${metadata.sample}_predicted_syfpeithi.tsv' \\
+        --output '${prefix}_predicted_syfpeithi.tsv' \\
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -34,11 +32,5 @@ process SYFPEITHI {
         epytope \$(python -c "import pkg_resources; print(pkg_resources.get_distribution('epytope').version)")
         syfpeithi 1.0
     END_VERSIONS
-    """
-
-    stub:
-    """
-    touch ${metadata.sample}_predicted_syfpeithi.tsv
-    touch versions.yml
     """
 }

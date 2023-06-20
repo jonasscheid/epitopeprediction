@@ -25,12 +25,10 @@ args = parser.parse_args()
 
 
 def read_protein_fasta(file):
-    # split at first whitespace and use short ID
-
     collect = set()
     # iterate over all FASTA entries:
     for _id, seq in SimpleFastaParser(file):
-        # generate element:
+        # split at first whitespace and use short ID
         _id = _id.split(" ")[0]
 
         try:

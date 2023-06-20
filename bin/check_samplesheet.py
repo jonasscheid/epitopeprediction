@@ -116,8 +116,6 @@ class RowChecker:
                 f"The input file has an unrecognized extension: {filename}\n"
                 f"It should be one of: {', '.join(self.VALID_FORMATS)}"
             )
-        if not os.path.exists(filename):
-            raise AssertionError(f"File {filename} does not exist!")
 
     def _validate_row_length(self, row):
         """Assert the row length."""
