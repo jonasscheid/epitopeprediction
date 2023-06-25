@@ -3,7 +3,7 @@ process NETMHCPAN {
     tag "${metadata.sample}"
 
 
-    container "netmhc:latest"
+    container 'ghcr.io/jonasscheid/epitopeprediction-2:netmhc'
 
     input:
     tuple val(metadata), path(peptide_file), path(nonfree_tools)

@@ -3,7 +3,7 @@ process NETMHCIIPAN {
     tag "${metadata.sample}"
 
 
-    container "pmccaffrey6/netmhcpan_ii:4.1"
+    container 'ghcr.io/jonasscheid/epitopeprediction-2:netmhc'
 
     input:
     tuple val(metadata), path(peptide_file)
