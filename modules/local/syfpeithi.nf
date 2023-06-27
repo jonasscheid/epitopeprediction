@@ -25,6 +25,7 @@ process SYFPEITHI {
         --min_peptide_length ${min_length} \\
         --max_peptide_length ${max_length} \\
         --output '${prefix}_predicted_syfpeithi.tsv'
+    echo ${peptide_file}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

@@ -85,7 +85,7 @@ def main():
 
     # Build epytope Objects of peptides and alleles
     peptides = [Peptide(peptide) for peptide in input_file['sequence'] if len(peptide) >= args.min_peptide_length and len(peptide) <= args.max_peptide_length]
-
+    print("peptides", peptides)
     # Check if alleles are supported by the predictor
     alleles = []
     for allele in args.alleles.split(';'):

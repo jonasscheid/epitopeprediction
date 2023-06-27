@@ -2,11 +2,11 @@
 
 import argparse
 import typing
-import csv
 import logging
 import subprocess as sp
 import pandas as pd
 import sys
+import os
 
 # instantiate global logger object
 logger = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ def main():
     with open(netmhcpan_input, 'w') as file:
         for peptide in peptides:
             # Hard length limits of netmhcpan
-            if len(peptide)not in set(range(args.min_peptide_length, args.max_peptide_length+1))&set(range(min_length_given_by_netmhcpan, max_length_given_by_netmhcpan+1)):
+            if len(peptide) in set(range(args.min_peptide_length, args.max_peptide_length+1)) & set(range(min_length_given_by_netmhcpan, max_length_given_by_netmhcpan+1)):
                 file.write(peptide + '\n')
             else:
                 logger.warning(f'{peptide} does not have the right length. Skipping..')
@@ -72,6 +72,9 @@ def main():
     tmp_dfs = []
     for allele in input_alleles:
         if allele in supported_alleles:
+            #if file with name f'{args.sample_id}_{allele}.xls' not found raise RuntimeError
+            if f'{args.sample_id}_{allele}.xls' not in os.listdir():
+                raise RuntimeError('No single prediction was made for whole sample. Please check the input file.')
             tmp_df = pd.read_csv(f'{args.sample_id}_{allele}.xls', sep='\t', skiprows=1, index_col=0)
             tmp_df['allele'] = allele
             tmp_dfs.append(tmp_df)

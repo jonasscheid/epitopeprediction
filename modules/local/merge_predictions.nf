@@ -15,7 +15,7 @@ process MERGE_PREDICTIONS {
     path "versions.yml", emit: versions
 
     script:
-    def output = prediction_files.first().baseName.split("_").dropRight(2).join("")
+    def output = prediction_files.first().baseName.split("_").dropRight(2).join("_")
     def min_length = (metadata.mhc_class == "I") ? params.min_peptide_length_mhc_I : params.min_peptide_length_mhc_II
     def max_length = (metadata.mhc_class == "I") ? params.max_peptide_length_mhc_I : params.max_peptide_length_mhc_II
 
@@ -28,6 +28,7 @@ process MERGE_PREDICTIONS {
     """
     merge_binding_predictions.py \
         --input "${prediction_files}" \
+        --original_file "${input_file}"\
         --output ${output}.tsv \
         --min_peptide_length ${min_length} \
         --max_peptide_length ${max_length} \

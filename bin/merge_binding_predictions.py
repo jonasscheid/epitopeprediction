@@ -5,8 +5,8 @@ import pandas as pd
 import typing
 import sys
 import logging
-import os
 import mhcgnomes
+from functools import reduce
 
 # Create a logger
 logging.basicConfig(filename='merge_prediction_outputs.log', filemode='w',level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s', force=True)
@@ -19,6 +19,7 @@ def parse_args(argv=None) -> typing.List[str]:
     """
     parser = argparse.ArgumentParser(description='Harmonize prediction outputs')
     parser.add_argument('--input', required=True, help='Lists of paths to prediction outputs')
+    parser.add_argument('--original_file', required=True, help='Path to original input file contained in metadata')
     parser.add_argument('--output', required=True, help='Output file')
     parser.add_argument('--min_peptide_length', type=int, help='Minimum length of the peptides')
     parser.add_argument('--max_peptide_length', type=int, help='Maximum length of the peptides')
@@ -144,31 +145,10 @@ def main():
 
         tmp_dfs.append(tmp_df)
 
-    df = pd.concat(tmp_dfs, axis=0, ignore_index=True)
-
-    '''
-    file_type = "peptide"
-    identifier_of_file_type = "peptide"
-    #open tsv file and get df
-    input_file = pd.read_csv(args.input_file, sep='\t')
-    #drop id column if it exists
-    if "id" in input_file.columns:
-        input_file = input_file.drop(columns=["id"])
-
-    df = pd.DataFrame({"sequence":[]})
-    for file in prediction_files:
-        tmp_df = pd.read_csv(file, sep='\t')
-        #rename peptide column to sequence
-        tmp_df = tmp_df.rename(columns={"peptide":"sequence"})
-        #add prefix to all columns except peptide
-        tmp_df.columns = [f'{predictor}_{col}' if col != "sequence" else col for col in tmp_df.columns]
-        df = pd.merge(df, tmp_df, on="sequence", how='outer')
-
-    #merge input file with prediction df
-    df = pd.merge(input_file, df, on="sequence", how='outer')
-    #write df to tsv
-    df.to_csv(f'{sample_name}_predictions.tsv', sep='\t', index=False)
-    '''
+    #merge elements in tmp_dfs on one column of dataframe
+    df = reduce(lambda left,right: pd.merge(left,right,on=['sequence'], how='outer', sort=True), tmp_dfs)
+    original_input = pd.read_csv(args.original_file, sep='\t')
+    df = pd.merge(original_input, df, on=['sequence'], how='outer', sort=True)
 
     #write df to tsv
     df.to_csv(f'{args.output}', sep='\t', index=False)

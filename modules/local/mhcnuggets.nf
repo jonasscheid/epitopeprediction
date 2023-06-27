@@ -2,10 +2,10 @@ process MHCNUGGETS {
     label 'process_low'
     tag "${metadata.sample}"
 
-    conda "bioconda::mhcnuggets=2.4.0"
+    conda "bioconda::mhcnuggets=2.1.0"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/mhcnuggets:2.4.0--pyh7cba7a3_0' :
-        'quay.io/biocontainers/mhcnuggets:2.4.0--pyh7cba7a3_0' }"
+        'https://depot.galaxyproject.org/singularity/mhcnuggets:2.1.0--pyh7cba7a3_0' :
+        'quay.io/biocontainers/mhcnuggets:2.1.0--pyh7cba7a3_0' }"
 
     input:
     tuple val(metadata), path(peptide_file)
@@ -34,12 +34,8 @@ process MHCNUGGETS {
     END_VERSIONS
     """
 
-    //mhcgnomes: \$(python -c "from mhcgnomes import version; print(version.__version__)")
-    //TODO mhcnuggets version hinzufügen -> mhcnuggets:  \$(echo "2.4.0")
-
     stub:
     """
-    touch mhcnuggets_prediction.log
     touch ${metadata.sample}_predicted_mhcnuggets.tsv
     touch versions.yml
     """

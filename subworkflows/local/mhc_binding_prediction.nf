@@ -61,10 +61,8 @@ workflow MHC_BINDING_PREDICTION {
         ch_combined_predictions = ch_combined_predictions.join(NETMHCIIPAN.out.predicted, remainder: true)
         }
 
-    //remove the null (it[1]) in the channel output
-    ch_combined_predictions = ch_combined_predictions.map{ it -> [it[0], it[2..-1]]}
-    //join metadata and input channel with metadata and output channel
-    ch_combined_predictions = ch_combined_predictions.join(metadata_and_file, remainder: true)
+    //remove the null (it[1]) in the channel output and join metadata and input channel with metadata and output channel
+    ch_combined_predictions = ch_combined_predictions.map{ it -> [it[0], it[2..-1]]}.join(metadata_and_file, remainder: true)
 
     //merge the prediction output of all tools into one output merged_prediction.tsv
     MERGE_PREDICTIONS (ch_combined_predictions)
