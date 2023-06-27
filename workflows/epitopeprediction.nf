@@ -129,10 +129,15 @@ workflow EPITOPEPREDICTION {
 
     // Split fasta into chunks of 100 proteins to facilitate parallelization
     SEQKIT_SPLIT2 ( ch_samples_from_sheet.protein )
+    ch_versions = ch_versions.mix( SEQKIT_SPLIT2.out.versions.ifEmpty(null) )
 
     EPYTOPE_GENERATE_PEPTIDES( SEQKIT_SPLIT2.out.splitted.transpose() )
+    ch_versions = ch_versions.mix( EPYTOPE_GENERATE_PEPTIDES.out.versions.ifEmpty(null) )
 
     MHC_BINDING_PREDICTION_PROTEIN( EPYTOPE_GENERATE_PEPTIDES.out.splitted )
+    //TODO: peptide output mergen
+    //MHC_BINDING_PREDICTION_PROTEIN.out.ch_combined_predictions.view()
+
 
     MHC_BINDING_PREDICTION_PEP( ch_samples_from_sheet.peptide )
 
