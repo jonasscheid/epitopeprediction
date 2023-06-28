@@ -2,8 +2,7 @@ process NETMHCPAN {
     label 'process_single'
     tag "${metadata.sample}"
 
-
-    container "ghcr.io/jonasscheid/epitopeprediction-2:netmhc"
+    container 'ghcr.io/jonasscheid/epitopeprediction-2:netmhc'
 
     input:
     tuple val(metadata), path(peptide_file), path(nonfree_tools)
