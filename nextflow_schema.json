@@ -92,7 +92,7 @@
                 "max_peptide_length_classII": {
                     "type": "integer",
                     "default": 25,
-                    "description": "Specifies the maximum peptide length for MHC class II peptides."
+                    "description": "Specifies the maximum peptide length for MHC class II peptides. Defines the size of the flanking regions around a mutation in a peptide in the FASTA file (if `fasta_output` is set to `true`)."
                 },
                 "tools": {
                     "type": "string",
