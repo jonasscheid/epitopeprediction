@@ -56,18 +56,18 @@ class Arguments:
         # Parse the extended arguments
         args_list = shlex.split(args_string)  # Split the string into a list of arguments
         parser = argparse.ArgumentParser()
-        
+
         # Add both positional and optional arguments
         i = 0
         while i < len(args_list):
             if args_list[i].startswith('--'):
                 has_value = i + 1 < len(args_list) and not args_list[i + 1].startswith('--')
-                parser.add_argument(args_list[i], type=str if has_value else None, 
+                parser.add_argument(args_list[i], type=str if has_value else None,
                                    action='store' if has_value else 'store_true')
                 i += 2 if has_value else 1
             else:
                 i += 1
-        
+
         args = parser.parse_args(args_list)
         vars(self).update(vars(args))
 

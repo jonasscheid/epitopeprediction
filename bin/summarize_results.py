@@ -201,7 +201,7 @@ class Utils:
         )
 
         # Add global binder column if any of the predictors report a binder
-        summary_binder = best.groupby(level=peptide_col)['binder'].any().reset_index()	
+        summary_binder = best.groupby(level=peptide_col)['binder'].any().reset_index()
         summary_df = summary_df.reset_index().merge(summary_binder, on=peptide_col, how='left')
 
         return summary_df
