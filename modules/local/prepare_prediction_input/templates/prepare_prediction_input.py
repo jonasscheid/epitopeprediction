@@ -54,7 +54,6 @@ class Arguments:
         self.max_peptide_length_classI = int("$params.max_peptide_length_classI")
         self.min_peptide_length_classII = int("$params.min_peptide_length_classII")
         self.max_peptide_length_classII = int("$params.max_peptide_length_classII")
-        self.peptide_col_name = "sequence"
         self.parse_ext_args("$task.ext.args")
 
     def parse_ext_args(self, args_string: str) -> None:
@@ -68,12 +67,20 @@ class Arguments:
         # Parse the extended arguments
         args_list = shlex.split(args_string)  # Split the string into a list of arguments
         parser = argparse.ArgumentParser()
-        # input parameters
+        
+        # Add both positional and optional arguments
+        i = 0
+        while i < len(args_list):
+            if args_list[i].startswith('--'):
+                has_value = i + 1 < len(args_list) and not args_list[i + 1].startswith('--')
+                parser.add_argument(args_list[i], type=str if has_value else None, 
+                                   action='store' if has_value else 'store_true')
+                i += 2 if has_value else 1
+            else:
+                i += 1
+        
         args = parser.parse_args(args_list)
-
-        # Assign args attributes to self attributes
-        for attr in vars(args):
-            setattr(self, attr, getattr(args, attr))
+        vars(self).update(vars(args))
 
 
 class Version:
@@ -221,7 +228,7 @@ def main():
                 df_tool.rename(columns={args.peptide_col_name: "peptide"}, inplace=True)
                 df_tool[['peptide', 'allele']].to_csv(f'{args.prefix}_{config["suffix"]}', index=False)
             else:
-                df_tool[['sequence']].to_csv(f'{args.prefix}_{config["suffix"]}', sep="\t", header=False, index=False)
+                df_tool[[args.peptide_col_name]].to_csv(f'{args.prefix}_{config["suffix"]}', sep="\t", header=False, index=False)
 
     # Parse versions
     versions_this_module = {}

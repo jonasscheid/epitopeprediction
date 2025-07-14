@@ -173,6 +173,7 @@ class Utils:
             else:
                 return group.loc[group['BA'].idxmax()]
 
+        # Get best prediction score for each peptide per predictor
         best = (
             df
             .dropna(subset=['predictor'])
@@ -181,26 +182,29 @@ class Utils:
             .drop_duplicates(subset=[peptide_col, 'predictor'])
         )
 
-        # now build summary
+        # Summarize best values and alleles in summary DataFrame
         summary_df = pd.DataFrame(index=best[peptide_col].unique())
         summary_df.index.name = peptide_col
 
+        # Add best values for each predictor
         for pred in best['predictor'].unique():
             sel = best[best['predictor'] == pred].set_index(peptide_col)
             val_col = 'rank' if pred in rank_metric_best else 'BA'
             summary_df[f'best_value_{pred}'] = sel[val_col]
             summary_df[f'best_allele_{pred}'] = sel['allele']
 
-        # aggregate all per‑predictor alleles into one column
-        allele_cols = [c for c in summary_df.columns if c.startswith('best_allele_')]
+        # Add best value and allele across all predictors
+        best_allele_cols = [c for c in summary_df.columns if c.startswith('best_allele_')]
         summary_df['best_allele'] = (
-            summary_df[allele_cols]
+            summary_df[best_allele_cols]
                 .apply(lambda row: ','.join(sorted({a for a in row if pd.notna(a)})), axis=1)
         )
-        # Add global binder column if any of the predictors report a binder
-        summary_df['binder'] = summary_df[[col for col in summary_df if 'binder' in col]].any(axis=1, skipna=False)
 
-        return summary_df.reset_index()
+        # Add global binder column if any of the predictors report a binder
+        summary_binder = best.groupby(level=peptide_col)['binder'].any().reset_index()	
+        summary_df = summary_df.reset_index().merge(summary_binder, on=peptide_col, how='left')
+
+        return summary_df
 
 
     def long2wide(df: pd.DataFrame, peptide_col: str) -> pd.DataFrame:
@@ -216,7 +220,7 @@ class Utils:
             pd.DataFrame: Transformed wide-format DataFrame.
         """
         # Identify non-predictor columns to keep as index
-        meta_columns = [col for col in df.columns if col not in ['predictor', 'allele', 'BA', 'rank', 'binder']]
+        meta_columns = [col for col in df.columns if not any([x in col for x in ['predictor', 'allele', 'BA', 'rank', 'binder']])]
 
         # Pivot to wide format
         df_pivot = df.pivot_table(
@@ -233,7 +237,7 @@ class Utils:
         df_wide = df[meta_columns].drop_duplicates().merge(df_pivot, on=meta_columns, how="left")
 
         # Merge summary columns for best values and best alleles into the wide DataFrame
-        summary_df = Utils.summarize_best_per_predictor(df, peptide_col)
+        summary_df = Utils.summarize_best_per_predictor(df[[peptide_col,'allele','rank','BA','binder','predictor']], peptide_col)
         df_wide = df_wide.merge(summary_df, on=peptide_col, how='left')
 
         return df_wide
