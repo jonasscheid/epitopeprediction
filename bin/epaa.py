@@ -693,6 +693,21 @@ def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_
         # Get the subset of the DataFrame relevant to this transcript
         peptides_for_transcript = grouped_peptides_df.get_group(transcript_id)
 
+        # Small function to join unique values from a Series or DataFrame
+        def unique_join(obj):
+            if isinstance(obj, pd.Series):
+                return ",".join(sorted(set(obj.astype(str))))
+            elif isinstance(obj, pd.DataFrame):
+                return ",".join(sorted(set(obj.astype(str).values.flatten())))
+            else:
+                return str(obj)
+
+        # Fill fasta dict with metadata (Uniprot, Ensembl IDs)
+        # Assumed to be the same for wt & all mutations of a transcript
+        fasta_dict[transcript_id]["uniprot"] = unique_join(peptides_for_transcript["uniprot"])
+        fasta_dict[transcript_id]["ensembl_gene"] = unique_join(peptides_for_transcript["gene"])
+        fasta_dict[transcript_id]["ensembl_protein"] = unique_join(peptides_for_transcript["proteins"])
+
         processed_mutations_for_transcript = []
         for mut in muts_list:
             # Filter the DataFrame with a regex that matches any of the variant details
@@ -704,22 +719,7 @@ def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_
             if len(filtered_peptides) == 0:
                 logger.warning(f"No peptides found for transcript {transcript_id} with mutation {mut['variant_details_gene']}. This mutation will be removed from fasta output.")
                 continue
-
-            # Fill fasta dict with metadata (Uniprot, Ensembl IDs)
-            # Assumed to be the same for all mutations of a transcript
-
-            # Small function to join unique values from a Series or DataFrame
-            def unique_join(obj):
-                if isinstance(obj, pd.Series):
-                    return ",".join(sorted(set(obj.astype(str))))
-                elif isinstance(obj, pd.DataFrame):
-                    return ",".join(sorted(set(obj.astype(str).values.flatten())))
-                else:
-                    return str(obj)
-
-            fasta_dict[transcript_id]["uniprot"] = unique_join(filtered_peptides["uniprot"])
-            fasta_dict[transcript_id]["ensembl_gene"] = unique_join(filtered_peptides["gene"])
-            fasta_dict[transcript_id]["ensembl_protein"] = unique_join(filtered_peptides["proteins"])
+            # Add protein variant details to the mutation
             mut["variant_details_protein"] = unique_join(filtered_peptides["variant_details_protein"])
 
             # +/- flanking region of set number of amino acids around the mutation positions
