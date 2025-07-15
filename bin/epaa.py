@@ -627,6 +627,7 @@ def generate_fasta_output(output_filename, mutated_proteins, mutated_peptides_df
                 "variant_details_gene": cds_mutation_syntax
             }
             # Add to list of mutations for this transcript
+            # Multiple variants on one transcript
             temp_mutations_by_transcript.setdefault(transcript_id, []).append(mut_entry)
         elif len(p.vars) > 1:
             # Extract mutation syntax for all variants in the protein
