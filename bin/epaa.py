@@ -592,7 +592,7 @@ def write_empty_files(args: argparse.Namespace):
     if args.fasta_output:
         open(f"{args.prefix}.fasta", "w").close()
 
-def generate_fasta_output(output_filename, mutated_proteins, mutated_peptides_df, flanking_region_size: int = 25):
+def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_peptides_df: pd.DataFrame, flanking_region_size: int):
     """
     Generates a FASTA file from mutated protein sequences,
     integrating additional peptide information from a DataFrame.
