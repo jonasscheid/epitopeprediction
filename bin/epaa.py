@@ -616,7 +616,7 @@ def generate_fasta_output(output_filename, mutated_proteins, mutated_peptides_df
         if len(p.vars) == 0:
             # The wildtype sequence is stored directly in fasta_dict since it is not modified further
             fasta_dict.setdefault(transcript_id, {"seq_wt": str(p), "mutations": []})
-        # Mutations with only one variant
+        # Transcript with only one variant
         elif len(p.vars) == 1:
             # Extract relevant mutation details
             variant_detail = next(iter(p.vars.values()))[0]
