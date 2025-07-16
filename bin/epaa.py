@@ -220,6 +220,7 @@ def read_vcf(filename, pass_only=True):
             # check if we have SNPEFF or VEP annotated variants, otherwise abort
             if record.INFO.get(SNPEFF_KEY, False) or record.INFO.get(VEP_KEY, False):
                 isSynonymous = False
+                consequence = "unknown"
                 coding = dict()
                 types = []
                 # SNPEFF annotation
