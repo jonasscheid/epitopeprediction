@@ -279,6 +279,7 @@ def read_vcf(filename, pass_only=True):
                     for annotation in record.INFO[VEP_KEY]:
                         split_annotation = annotation.split("|")
                         isSynonymous = "synonymous" in split_annotation[vep_fields["consequence"]]
+                        consequence = split_annotation[vep_fields["consequence"]]
                         gene = split_annotation[vep_fields["gene"]]
                         c_coding = split_annotation[vep_fields["hgvsc"]]
                         p_coding = split_annotation[vep_fields["hgvsp"]]
@@ -313,6 +314,7 @@ def read_vcf(filename, pass_only=True):
                         coding,
                         isHomozygous,
                         isSynonymous,
+                        metadata={"consequence": consequence}
                     )
                     var.gene = gene
                     var.log_metadata("vardbid", variation_dbid)
@@ -623,8 +625,10 @@ def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_
             variant_details_gene = []
             variant_details_protein = []
             variant_positions_protein = []
+            variant_consequences = []
             for var_details in p.vars.values():
                 for variant_detail in var_details:
+                    variant_consequences.append(variant_detail.get_metadata("consequence")[0])
                     for coding_variant in variant_detail.coding.values():
                         variant_details_gene.append(coding_variant.cdsMutationSyntax)
                         variant_details_protein.append(coding_variant.aaMutationSyntax)
@@ -649,6 +653,7 @@ def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_
                     "seq": str(p),
                     "variant_details_gene": ",".join(variant_details_gene),
                     "variant_details_protein": ",".join(variant_details_protein),
+                    "variant_consequences": ",".join(variant_consequences),
                 }
                 # Splice the sequence around the mutation positions
                 start = max(0, min(variant_positions_protein) - flanking_region_size)
@@ -695,7 +700,7 @@ def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_
                     protein_outfile.write(f"{entry['seq_wt']}\n")
                 # Write the mutated sequences
                 for i, variant in enumerate(entry["variants"]):
-                    protein_outfile.write(f"{header_start}mut_{i+1}|{header_middle}|{variant['variant_details_gene']}|{variant['variant_details_protein'] if 'variant_details_protein' in variant else 'unknown'}\n")
+                    protein_outfile.write(f"{header_start}mut_{i+1}|{header_middle}|{variant['variant_consequences']}|{variant['variant_details_gene']}|{variant['variant_details_protein'] if 'variant_details_protein' in variant else 'unknown'}\n")
                     protein_outfile.write(f"{variant['seq']}\n")
             except Exception as e:
                 logger.error(f"Error writing FASTA entry for transcript {transcript}: {e}")
