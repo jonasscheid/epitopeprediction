@@ -360,7 +360,7 @@ def read_vcf(filename, pass_only=True):
                 for m in metadata_name:
                     vs_new.log_metadata(m, v.get_metadata(m))
                 dict_vars[v] = vs_new
-    
+
     return dict_vars.values(), transcript_ids, final_metadata_list
 
 def create_protein_column_value(pep, database_id):
@@ -649,7 +649,7 @@ def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_
             # In case of multiple mutations, we want to keep them only if all combinations are close together (within one flanking region)
             # examples (based on flanking_region_size of 25):
             # valid:
-            # positions = [101, 112] 
+            # positions = [101, 112]
             # positions = [50, 64, 71] --> one peptide could span all mutations in theory
             # invalid:
             # positions = [50, 64, 80] --> too far apart, 50 and 80 can not be covered by one peptide, the [50, 64] will appear separatey in the mutated proteins list
@@ -700,7 +700,7 @@ def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_
         fasta_dict[transcript_id]["uniprot"] = unique_join(peptides_for_transcript["uniprot"])
         fasta_dict[transcript_id]["ensembl_gene"] = unique_join(peptides_for_transcript["gene"])
         fasta_dict[transcript_id]["ensembl_protein"] = unique_join(peptides_for_transcript["proteins"])
-    
+
     # Write the FASTA file
     with open(output_filename, "w") as protein_outfile:
         for transcript, entry in fasta_dict.items():
