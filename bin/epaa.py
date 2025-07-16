@@ -592,6 +592,7 @@ def write_empty_files(args: argparse.Namespace):
     if args.fasta_output:
         open(f"{args.prefix}.fasta", "w").close()
 
+
 def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_peptides_df: pd.DataFrame, flanking_region_size: int):
     """
     Generates a FASTA file from mutated protein sequences,
@@ -601,186 +602,117 @@ def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_
         output_filename (str): The output FASTA file name.
         mutated_proteins (list): A list of protein objects.
         mutated_peptides_df (pd.DataFrame): A DataFrame containing peptide-related information such as accessions.
-        flanking_region_size (int): The size of the flanking region added on each side of the mutation.
+        flanking_region_size (int): The size of the flanking region added on each side of a mutation within a peptide.
     """
 
-    # The final FASTA sequences (wt and one or more mutations per transcript)
+    # Build FASTA dict: wildtypes and mutations per transcript
     fasta_dict = {}
 
-    # Temporarily store mutations to be processed later with peptide data
-    temp_mutations_by_transcript = {}
-
+    # Iterate over mutated proteins to collect sequences and mutations
     for p in mutated_proteins:
-        transcript_id = p.transcript_id.split(":")[0]
-        # Catch Wildtypes
+        # Get the transcript ID from the protein
+        tid = p.transcript_id.split(":")[0]
+        # Initialize the entry in the fasta_dict
+        entry = fasta_dict.setdefault(tid, {"seq_wt": None, "variants": []})
+        # If there are no variations, it is a wildtype protein, from which we store the full sequence
         if len(p.vars) == 0:
-            # The wildtype sequence is stored directly in fasta_dict since it is not modified further
-            fasta_dict.setdefault(transcript_id, {"seq_wt": str(p), "mutations": []})
-        # Transcript with only one variant
-        elif len(p.vars) == 1:
-            # Extract relevant mutation details
-            variant_detail = next(iter(p.vars.values()))[0]
-            cds_mutation_syntax = next(iter(variant_detail.coding.values())).cdsMutationSyntax
-            # Construct the mutation entry
-            mut_entry = {
-                "seq": str(p),
-                "variant_details_gene": cds_mutation_syntax
-            }
-            # Add to list of mutations for this transcript
-            # Multiple variants on one transcript
-            temp_mutations_by_transcript.setdefault(transcript_id, []).append(mut_entry)
-        elif len(p.vars) > 1:
-            # Extract mutation syntax for all variants in the protein
-            mutation_syntax_list = []
+            entry["seq_wt"] = str(p)
+        # If there are variations, we need to handle them separately
+        else:
+            # Collect all genomic variant details (mutation syntax)
+            mutation_syntaxes = []
             for var_details in p.vars.values():
                 for variant_detail in var_details:
                     for coding_variant in variant_detail.coding.values():
-                        cds_mutation_syntax = coding_variant.cdsMutationSyntax
-                        mutation_syntax_list.append(cds_mutation_syntax)
-            # Helper function to extract the first integer position from a mutation syntax string
-            def extract_first_position(s):
-                match = re.search(r"\d+", s)
-                return int(match.group()) if match else None
-
-            # Extract the position numbers from each mutation syntax
-            positions = []
-            for cds_mutation_syntax in mutation_syntax_list:
-                pos = extract_first_position(cds_mutation_syntax)
-                if pos is not None:
-                    positions.append(pos)
-            # Sort mutation_syntax list based on positions
-            mutation_syntax_list = sorted(
-                mutation_syntax_list,
-                key=lambda x: extract_first_position(x) if extract_first_position(x) is not None else float('inf')
-            )
-            # If no positions were found, skip this protein
-            if not positions:
-                logger.warning(f"No valid mutation positions found for transcript {transcript_id} with mutations: {mutation_syntax_list}. Skipping this mutation.")
-                continue
-            # Convert to amino acid positions by dividing by 3
-            positions = sorted(set([pos // 3 for pos in positions]))
-
-            # Check if all of them are within the two flanking regions
+                        mutation_syntaxes.append(coding_variant.cdsMutationSyntax)
+            # Validation for proteins with multiple variants, single mutations will always pass this test
             valid = True
+            # Get the amino acid positions
+            positions = [int(m.group()) // 3 for m in re.finditer(r"\d+", ",".join(mutation_syntaxes))]
+            # In case of multiple mutations, we want to keep them only if all combinations are close together (within one flanking region)
+            # examples (based on flanking_region_size of 25):
+            # valid:
+            # positions = [101, 112] 
+            # positions = [50, 64, 71] --> one peptide could span all mutations in theory
+            # invalid:
+            # positions = [50, 64, 80] --> too far apart, 50 and 80 can not be covered by one peptide, the [50, 64] will appear separatey in the mutated proteins list
             for i in positions:
                 for j in positions:
-                    if i != j and abs(i - j) > flanking_region_size * 2:
+                    if i != j and abs(i - j) > flanking_region_size:
                         valid = False
                         break
             if valid:
-                # Construct the mutation entry
-                mut_entry = {
-                    "seq": str(p), # Store the full mutated sequence for now
-                    "variant_details_gene": ",".join(mutation_syntax_list)
+                # Create a variant entry for the FASTA dict
+                variant_entry = {
+                    "seq": str(p),
+                    "variant_details_gene": ",".join(mutation_syntaxes),
                 }
-                # Add to list of mutations for this transcript
-                temp_mutations_by_transcript.setdefault(transcript_id, []).append(mut_entry)
+                # Splice the sequence around the mutation positions
+                start = max(0, min(positions) - flanking_region_size)
+                end = min(len(variant_entry["seq"]), max(positions) + flanking_region_size)
+                variant_entry["seq"] = variant_entry["seq"][start:end]
+                # And append to the list of variants for the given transcript
+                entry["variants"].append(variant_entry)
 
-    # Drop duplicates in mutated peptides DataFrame and group by transcripts
+    # Get a dataframe to look-up peptides by transcript --> to obtain meta data such as uniprot, ensembl IDs, protein variant notation
     peptides_df_for_lookup = mutated_peptides_df.iloc[:, 1:-1].drop_duplicates()
-    grouped_peptides_df = peptides_df_for_lookup.groupby("transcripts")
 
-    # Collect transcript which are not in the peptide DataFrame or have no unique peptides
-    transcripts_to_remove = set()
-
-    for transcript_id, muts_list in temp_mutations_by_transcript.items():
-        # Check if any peptide data exists for this transcript at all
-        if transcript_id not in grouped_peptides_df.groups:
-            logger.warning(f"No peptide data found for transcript {transcript_id}. Sequences derived from this transcript will be removed from fasta output.")
-            transcripts_to_remove.add(transcript_id)
+    # Add metadata to the FASTA dict
+    for transcript_id, entry in fasta_dict.items():
+        # Get the relevant peptide information for this transcript
+        peptides_for_transcript = peptides_df_for_lookup[peptides_df_for_lookup["transcripts"] == transcript_id]
+        # If no peptides are found for this transcript, skip to the next one (meta data is optional)
+        if peptides_for_transcript.empty:
             continue
-
-        # Get the subset of the DataFrame relevant to this transcript
-        peptides_for_transcript = grouped_peptides_df.get_group(transcript_id)
-
         # Small function to join unique values from a Series or DataFrame
         def unique_join(obj):
             if isinstance(obj, pd.Series):
-                return ",".join(sorted(set(obj.astype(str))))
+                tmp = ",".join(obj.astype(str))
             elif isinstance(obj, pd.DataFrame):
-                return ",".join(sorted(set(obj.astype(str).values.flatten())))
+                tmp = ",".join(obj.astype(str).values.flatten())
             else:
-                return str(obj)
-
-        # Fill fasta dict with metadata (Uniprot, Ensembl IDs)
-        # Assumed to be the same for wt & all mutations of a transcript
+                tmp =  str(obj)
+            return ",".join(sorted(set(tmp.split(",")))) if tmp else "" # individual items can be already comma-separated
+        # Fill fasta dict with metadata (Uniprot, Ensembl gene & protein IDs)
+        # They are assumed to be the same for wt & all mutations of a transcript
         fasta_dict[transcript_id]["uniprot"] = unique_join(peptides_for_transcript["uniprot"])
         fasta_dict[transcript_id]["ensembl_gene"] = unique_join(peptides_for_transcript["gene"])
         fasta_dict[transcript_id]["ensembl_protein"] = unique_join(peptides_for_transcript["proteins"])
-
-        processed_mutations_for_transcript = []
-        for mut in muts_list:
-            # Filter the DataFrame with a regex that matches any of the variant details
-            pattern = "|".join(re.escape(variant_detail) for variant_detail in mut["variant_details_gene"].split(","))
-            filtered_peptides = peptides_for_transcript[
-                peptides_for_transcript["variant_details_gene"].str.contains(pattern, na=False)
-            ]
-            # There should be exactly one matching peptide for each mutation
-            if len(filtered_peptides) == 0:
-                logger.warning(f"No peptides found for transcript {transcript_id} with mutation {mut['variant_details_gene']}. This mutation will be removed from fasta output.")
-                continue
-            # Add protein variant details to the mutation
-            mut["variant_details_protein"] = unique_join(filtered_peptides["variant_details_protein"])
-
-            # +/- flanking region of set number of amino acids around the mutation positions
-            # mut["variant_details_protein"] could contain one or multiple positions, if multiple, get the lowest and highest number
-            positions = [int(m.group()) for m in re.finditer(r"\d+", mut["variant_details_protein"])]
-            if positions:
-                start = max(0, min(positions) - flanking_region_size)
-                end = min(len(mut["seq"]), max(positions) + flanking_region_size)
-                mut["start"] = start
-                mut["end"] = end
-                mut["seq"] = mut["seq"][start:end]
-            else:
-                logger.warning(f"Could not extract position from variant_details_protein: {mut['variant_details_protein']} for transcript {transcript_id}. Skipping sequence slicing for this mutation.")
-                transcripts_to_remove.add(transcript_id)
-                continue
-            
-            processed_mutations_for_transcript.append(mut)
-        
-        # Add list of processed mutations back to the fasta_dict
-        fasta_dict[transcript_id]["mutations"] = processed_mutations_for_transcript
-
-    # Remove any problematic transcripts
-    for k in transcripts_to_remove:
-        if k in fasta_dict:
-            del fasta_dict[k]
+        # The variants need protein details, e.g. "p.Ala241Val,p.Ala254Thr"
+        for variant in entry["variants"]:
+            # Filter the peptides_for_transcript DataFrame to find matching variant details.
+            # Sometimes, multiple variants are grouped together in a single string, e.g. "c.241G>T,c.242A>T", likely because they affect the same amino acid.
+            # We use set comparison to identify these cases.
+            # If no exact set match is found, attempt to match any individual variant in the string.
+            # This covers the typical case where variants in a peptide are listed separately, e.g. "p.Ala241Val,p.Ala254Thr".
+            variant_details_set = set(variant["variant_details_gene"].split(",")) # precompute the set for comparison
+            peptide_filter = peptides_for_transcript["variant_details_gene"].apply(lambda x: set(x.split(",")) == variant_details_set)
+            if not peptide_filter.any():
+                peptide_filter = peptides_for_transcript["variant_details_gene"].apply(lambda x: any(variant == x for variant in variant["variant_details_gene"].split(",")))
+            filtered_peptides = peptides_for_transcript[peptide_filter]
+            # If we found matching peptides, we can add the protein variant details
+            if not filtered_peptides.empty:
+                # Add protein variant details to the mutation
+                variant["variant_details_protein"] = unique_join(filtered_peptides["variant_details_protein"])
     
     # Write the FASTA file
-    try:
-        with open(output_filename, "w") as protein_outfile:
-            for k in fasta_dict.keys():
-                transcript_entry = fasta_dict[k]
-
-                # --- Final validation before writing ---
-                # Skip if no wildtype sequence and no mutations were successfully processed for this entry
-                if not transcript_entry["seq_wt"] and not transcript_entry["mutations"]:
-                    continue
-
-                # Ensure essential metadata is present for header creation
-                required_meta_fields = ["uniprot", "ensembl_gene", "ensembl_protein"]
-                if not all(field in transcript_entry for field in required_meta_fields):
-                    logger.warning(f"Missing essential metadata for transcript {k}. Skipping FASTA output for this entry.")
-                    continue
-
-                # Construct common header parts
-                header_start = f">sp|{transcript_entry['uniprot']}"
-                header_middle = f"{transcript_entry['ensembl_gene']}|{k}|{transcript_entry['ensembl_protein']}|{transcript_entry['uniprot']}"
-                
+    with open(output_filename, "w") as protein_outfile:
+        for transcript, entry in fasta_dict.items():
+            try:
+                # Construct common header parts, if a meta data field is missing, it will be empty
+                header_start = f">epi|{entry['uniprot'] if 'uniprot' in entry else transcript}_"
+                header_middle = f"{entry['ensembl_gene'] if 'ensembl_gene' in entry else ''}|{transcript}|{entry['ensembl_protein'] if 'ensembl_protein' in entry else ''}|{entry['uniprot'] if 'uniprot' in entry else ''}"
                 # Write the wildtype sequence if available
-                if transcript_entry["seq_wt"]:
-                    protein_outfile.write(f"{header_start}_wt|{header_middle}\n")
-                    protein_outfile.write(f"{transcript_entry['seq_wt']}\n")
-                
+                if entry["seq_wt"]:
+                    protein_outfile.write(f"{header_start}wt|{header_middle}\n")
+                    protein_outfile.write(f"{entry['seq_wt']}\n")
                 # Write the mutated sequences
-                for i, mut in enumerate(transcript_entry["mutations"]):
-                    protein_outfile.write(f"{header_start}_mut_{i+1}|{header_middle}|{mut['variant_details_gene']}|{mut['variant_details_protein']}\n")
-                    protein_outfile.write(f"{mut['seq']}\n")
-        logger.info(f"FASTA file successfully generated: {output_filename}")
-    except IOError as e:
-        logger.error(f"Error writing FASTA file {output_filename}: {e}")
-    except Exception as e:
-        logger.error(f"An unexpected error occurred during FASTA file generation: {e}")
+                for i, variant in enumerate(entry["variants"]):
+                    protein_outfile.write(f"{header_start}mut_{i+1}|{header_middle}|{variant['variant_details_gene']}|{variant['variant_details_protein'] if 'variant_details_protein' in variant else 'unknown'}\n")
+                    protein_outfile.write(f"{variant['seq']}\n")
+            except Exception as e:
+                logger.error(f"Error writing FASTA entry for transcript {transcript}: {e}")
+    logger.info(f"FASTA file successfully generated: {output_filename}")
 
 def __main__():
     args = parse_args()
