@@ -92,7 +92,7 @@
                 "max_peptide_length_classII": {
                     "type": "integer",
                     "default": 25,
-                    "description": "Specifies the maximum peptide length for MHC class II peptides. Defines the size of the flanking regions around a mutation in a peptide in the FASTA file (if `fasta_output` is set to `true`)."
+                    "description": "Specifies the maximum peptide length for MHC class II peptides."
                 },
                 "tools": {
                     "type": "string",
@@ -110,6 +110,12 @@
                     "default": false,
                     "description": "Specifies that sequences of proteins, affected by provided variants, will be written to a FASTA file.",
                     "help_text": "Specifies that sequences of proteins that are affected by the provided genomic variants are written to a `FASTA` file. The resulting `FASTA` file will contain the wild-type and mutated protein sequences. Setting this flag will skip the MHC binding prediction entirely. One can provide arbitrary values for `alleles` and `mhc_class` in the samplesheet."
+                },
+                "fasta_peptide_flanking_region_size": {
+                    "type": "integer",
+                    "default": 25,
+                    "hidden": true,
+                    "description": "Specifies the size of the flanking regions around a mutation in a peptide in the FASTA file (if `fasta_output` is set to `true`)."
                 },
                 "wide_format_output": {
                     "type": "boolean",
