@@ -673,6 +673,9 @@ def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_
                 # And append to the list of variants for the given transcript
                 entry["variants"].append(variant_entry)
 
+    # Remove entries whithout variants
+    fasta_dict = {k: v for k, v in fasta_dict.items() if v["variants"]}
+
     # Get a dataframe to look-up peptides by transcript --> to obtain meta data such as uniprot, ensembl IDs, protein variant notation
     peptides_df_for_lookup = mutated_peptides_df.iloc[:, 1:-1].drop_duplicates()
 
