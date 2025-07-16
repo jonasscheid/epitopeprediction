@@ -21,7 +21,7 @@ from epytope.EpitopePrediction import EpitopePredictorFactory
 from epytope.IO.ADBAdapter import EIdentifierTypes
 from epytope.IO.MartsAdapter import MartsAdapter
 
-__author__ = "Christopher Mohr, Jonas Scheid"
+__author__ = "Christopher Mohr, Jonas Scheid, Axel Walter"
 VERSION = "2.0"
 
 # Define global variables
