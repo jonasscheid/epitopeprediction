@@ -626,6 +626,8 @@ def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_
             variant_details_protein = []
             variant_positions_protein = []
             variant_consequences = []
+
+            # Collect variant info
             for var_details in p.vars.values():
                 for variant_detail in var_details:
                     variant_consequences.append(variant_detail.get_metadata("consequence")[0])
@@ -633,6 +635,15 @@ def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_
                         variant_details_gene.append(coding_variant.cdsMutationSyntax)
                         variant_details_protein.append(coding_variant.aaMutationSyntax)
                         variant_positions_protein.append(coding_variant.protPos)
+
+            # Sort all lists based on variant_positions_protein
+            if variant_positions_protein:
+                sorted_indices = sorted(range(len(variant_positions_protein)), key=lambda i: variant_positions_protein[i])
+                variant_details_gene = [variant_details_gene[i] for i in sorted_indices]
+                variant_details_protein = [variant_details_protein[i] for i in sorted_indices]
+                variant_positions_protein = [variant_positions_protein[i] for i in sorted_indices]
+                variant_consequences = [variant_consequences[i] for i in sorted_indices]
+
             # Validation for proteins with multiple variants, single mutations will always pass this test
             valid = True
             # In case of multiple mutations, we want to keep them only if all combinations are close together (within one flanking region)
