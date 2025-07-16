@@ -358,7 +358,7 @@ def read_vcf(filename, pass_only=True):
                 for m in metadata_name:
                     vs_new.log_metadata(m, v.get_metadata(m))
                 dict_vars[v] = vs_new
-
+    
     return dict_vars.values(), transcript_ids, final_metadata_list
 
 def create_protein_column_value(pep, database_id):
@@ -619,16 +619,18 @@ def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_
             entry["seq_wt"] = str(p)
         # If there are variations, we need to handle them separately
         else:
-            # Collect all genomic variant details (mutation syntax)
-            mutation_syntaxes = []
+            # Collect all genomic variant details, protein variant details and positions
+            variant_details_gene = []
+            variant_details_protein = []
+            variant_positions_protein = []
             for var_details in p.vars.values():
                 for variant_detail in var_details:
                     for coding_variant in variant_detail.coding.values():
-                        mutation_syntaxes.append(coding_variant.cdsMutationSyntax)
+                        variant_details_gene.append(coding_variant.cdsMutationSyntax)
+                        variant_details_protein.append(coding_variant.aaMutationSyntax)
+                        variant_positions_protein.append(coding_variant.protPos)
             # Validation for proteins with multiple variants, single mutations will always pass this test
             valid = True
-            # Get the amino acid positions
-            positions = [int(m.group()) // 3 for m in re.finditer(r"\d+", ",".join(mutation_syntaxes))]
             # In case of multiple mutations, we want to keep them only if all combinations are close together (within one flanking region)
             # examples (based on flanking_region_size of 25):
             # valid:
@@ -636,8 +638,8 @@ def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_
             # positions = [50, 64, 71] --> one peptide could span all mutations in theory
             # invalid:
             # positions = [50, 64, 80] --> too far apart, 50 and 80 can not be covered by one peptide, the [50, 64] will appear separatey in the mutated proteins list
-            for i in positions:
-                for j in positions:
+            for i in variant_positions_protein:
+                for j in variant_positions_protein:
                     if i != j and abs(i - j) > flanking_region_size:
                         valid = False
                         break
@@ -645,11 +647,12 @@ def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_
                 # Create a variant entry for the FASTA dict
                 variant_entry = {
                     "seq": str(p),
-                    "variant_details_gene": ",".join(mutation_syntaxes),
+                    "variant_details_gene": ",".join(variant_details_gene),
+                    "variant_details_protein": ",".join(variant_details_protein),
                 }
                 # Splice the sequence around the mutation positions
-                start = max(0, min(positions) - flanking_region_size)
-                end = min(len(variant_entry["seq"]), max(positions) + flanking_region_size)
+                start = max(0, min(variant_positions_protein) - flanking_region_size)
+                end = min(len(variant_entry["seq"]), max(variant_positions_protein) + flanking_region_size)
                 variant_entry["seq"] = variant_entry["seq"][start:end]
                 # And append to the list of variants for the given transcript
                 entry["variants"].append(variant_entry)
@@ -678,22 +681,6 @@ def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_
         fasta_dict[transcript_id]["uniprot"] = unique_join(peptides_for_transcript["uniprot"])
         fasta_dict[transcript_id]["ensembl_gene"] = unique_join(peptides_for_transcript["gene"])
         fasta_dict[transcript_id]["ensembl_protein"] = unique_join(peptides_for_transcript["proteins"])
-        # The variants need protein details, e.g. "p.Ala241Val,p.Ala254Thr"
-        for variant in entry["variants"]:
-            # Filter the peptides_for_transcript DataFrame to find matching variant details.
-            # Sometimes, multiple variants are grouped together in a single string, e.g. "c.241G>T,c.242A>T", likely because they affect the same amino acid.
-            # We use set comparison to identify these cases.
-            # If no exact set match is found, attempt to match any individual variant in the string.
-            # This covers the typical case where variants in a peptide are listed separately, e.g. "p.Ala241Val,p.Ala254Thr".
-            variant_details_set = set(variant["variant_details_gene"].split(",")) # precompute the set for comparison
-            peptide_filter = peptides_for_transcript["variant_details_gene"].apply(lambda x: set(x.split(",")) == variant_details_set)
-            if not peptide_filter.any():
-                peptide_filter = peptides_for_transcript["variant_details_gene"].apply(lambda x: any(variant == x for variant in variant["variant_details_gene"].split(",")))
-            filtered_peptides = peptides_for_transcript[peptide_filter]
-            # If we found matching peptides, we can add the protein variant details
-            if not filtered_peptides.empty:
-                # Add protein variant details to the mutation
-                variant["variant_details_protein"] = unique_join(filtered_peptides["variant_details_protein"])
     
     # Write the FASTA file
     with open(output_filename, "w") as protein_outfile:
