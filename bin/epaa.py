@@ -598,9 +598,9 @@ def write_empty_files(args: argparse.Namespace):
         open(f"{args.prefix}.fasta", "w").close()
 
 def update_protein_variant_details_one_codon_triplet(
-    variant_details_protein: List[str], 
+    variant_details_protein: List[str],
     positions: List[int],
-    seq_wt: str, 
+    seq_wt: str,
     seq_mut: str,
     consequences: Union[List[str], None] = None
 ) -> List[str]:
@@ -608,7 +608,7 @@ def update_protein_variant_details_one_codon_triplet(
     Update the protein variant details for a single codon triplet (for missense and stop gained mutations).
 
     In case of multiple mutations in a codon triplet we need to update the variant details
-    to reflect the actual mutation syntax, e.g. "c.241G>T,c.242A>T" currently annotated as "p.Glu81Ter,p.Glu81Val" 
+    to reflect the actual mutation syntax, e.g. "c.241G>T,c.242A>T" currently annotated as "p.Glu81Ter,p.Glu81Val"
     actual combined mutation --> "p.Glu81Leu"
     Without phasing, VEP does not annotate these together, so we have to do it manually for now
 
@@ -625,21 +625,21 @@ def update_protein_variant_details_one_codon_triplet(
     # Input validation
     if not variant_details_protein or not positions:
         return variant_details_protein
-    
+
     if len(variant_details_protein) != len(positions):
         raise ValueError("Length of variant_details_protein must match length of positions")
-    
+
     # Prepare lookup for single-letter to three-letter amino acid codes
     aa1to3 = IUPACData.protein_letters_1to3.copy()
     aa1to3["*"] = "Ter"
-    
+
     # Group positions by their list index values to find duplicates
     position_groups = {}
     for i, pos in enumerate(positions):
         if pos not in position_groups:
             position_groups[pos] = []
         position_groups[pos].append(i)
-    
+
     # Collect updated variants
     updated_variants = []
     # And, if consequences are provided, update them accordingly
@@ -647,7 +647,7 @@ def update_protein_variant_details_one_codon_triplet(
         updated_consequences = []
     else:
         updated_consequences = None
-    
+
     # Iterate over the grouped positions
     for pos, indices in position_groups.items():
         if len(indices) == 1:
@@ -665,22 +665,22 @@ def update_protein_variant_details_one_codon_triplet(
                     if updated_consequences is not None:
                         updated_consequences.extend(consequences[i] for i in indices)
                     continue
-                
+
                 # Get actual amino acids at this position
                 pos_wt = seq_wt[pos - 1]  # Convert to 0-based index
                 pos_mut = seq_mut[pos - 1] if pos <= len(seq_mut) else "*"
-                
+
                 # Convert to three-letter codes
                 pos_wt_3letter = aa1to3.get(pos_wt, pos_wt)
                 pos_mut_3letter = aa1to3.get(pos_mut, pos_mut)
-                
+
                 # Create the combined variant annotation
                 if pos_wt == pos_mut:
                     # Synonymous mutation
                     new_variant = f"p.{pos_wt_3letter}{pos}="
                 else:
                     new_variant = f"p.{pos_wt_3letter}{pos}{pos_mut_3letter}"
-                
+
                 # And update the consequence for the new combined variant
                 updated_variants.append(new_variant)
                 if updated_consequences is not None:
@@ -792,7 +792,7 @@ def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_
             )
             entry["variants"][i]["details_protein"] = ",".join(new_details)
             entry["variants"][i]["consequences"] = ",".join(new_consequences)
-    
+
     # Splice the sequences around the mutation positions
     for entry in fasta_dict.values():
         for i, variant in enumerate(entry["variants"]):
