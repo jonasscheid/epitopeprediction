@@ -22,6 +22,7 @@ process EPYTOPE_VARIANT_PREDICTION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     def min_length = (meta.mhc_class == "I") ? params.min_peptide_length_classI : params.min_peptide_length_classII
     def max_length = (meta.mhc_class == "I") ? params.max_peptide_length_classI : params.max_peptide_length_classII
+    def flanking_region_size = params.fasta_peptide_flanking_region_size
 
     """
     epaa.py \
@@ -29,6 +30,7 @@ process EPYTOPE_VARIANT_PREDICTION {
         -p ${prefix} \
         --max_length ${max_length} \
         --min_length ${min_length} \
+        --flanking_region_size ${flanking_region_size} \
         $args
 
     cat <<-END_VERSIONS > versions.yml
