@@ -647,13 +647,16 @@ def update_protein_variant_details_one_codon_triplet(
         updated_consequences = []
     else:
         updated_consequences = None
+    # And, for sorting, updated positions
+    updated_positions = []
 
-    def update_variants_and_consequences_with_original(indices):
+    def update_with_original(indices):
         """
-        Helper function to update variants and consequences for a given set of indices with the original input.
+        Helper function to update variants, positions and consequences for a given set of indices with the original input.
         """
         for i in indices:
             updated_variants.append(variant_details_protein[i])
+            updated_positions.append(positions[i])
             if updated_consequences is not None:
                 updated_consequences.append(consequences[i])
 
@@ -661,21 +664,21 @@ def update_protein_variant_details_one_codon_triplet(
     for pos, indices in position_groups.items():
         if len(indices) == 1:
             # Single variant at this position, we can simply take it
-            update_variants_and_consequences_with_original(indices)
+            update_with_original(indices)
         else:
             # Multiple variants at the same position - need to combine
             try:
                 # Ensure position is within wildtype sequence bounds
                 if pos < 1 or pos > len(seq_wt):
                     # Keep original variants if position is out of bounds
-                    update_variants_and_consequences_with_original(indices)
+                    update_with_original(indices)
                     continue
 
                 # Ensure variants are missense, stop gained, or synonymous
                 if consequences is not None:
                     if any([consequences[i] not in ["missense_variant", "stop_gained", "synonymous_variant"] for i in indices]):
                         # Keep original variants if not missense or stop gained
-                        update_variants_and_consequences_with_original(indices)
+                        update_with_original(indices)
                         continue
 
                 # Get actual amino acids at this position
@@ -692,9 +695,11 @@ def update_protein_variant_details_one_codon_triplet(
                     new_variant = f"p.{pos_wt_3letter}{pos}="
                 else:
                     new_variant = f"p.{pos_wt_3letter}{pos}{pos_mut_3letter}"
-
-                # And update the consequence for the new combined variant
+                # Update the variants
                 updated_variants.append(new_variant)
+                # Update the positions for sorting
+                updated_positions.append(pos)
+                # And update the consequence for the new combined variant
                 if updated_consequences is not None:
                     if pos_wt == pos_mut:
                         # Synonymous mutation, keep the first consequence
@@ -704,13 +709,17 @@ def update_protein_variant_details_one_codon_triplet(
                     else:
                         updated_consequences.append("missense_variant")
 
-            except (IndexError, KeyError) as e:
-                # Should not happen, but just in case, keep the original variants
-                updated_variants.extend([variant_details_protein[i] for i in indices])
-                if updated_consequences is not None:
-                    # Append the first consequence for this position
-                    updated_consequences.extend(consequences[i] for i in indices)
+            # Should not happen, but just in case, keep the original variants
+            except (IndexError, KeyError):
+                update_with_original(indices)
 
+    # Sort updated variants and consequences based on updated positions
+    if updated_positions:
+        sorted_indices = sorted(range(len(updated_positions)), key=lambda i: updated_positions[i])
+        updated_variants = [updated_variants[i] for i in sorted_indices]
+        if updated_consequences is not None:
+            updated_consequences = [updated_consequences[i] for i in sorted_indices]
+        updated_positions = [updated_positions[i] for i in sorted_indices]
 
     return updated_variants, updated_consequences
 
@@ -795,7 +804,7 @@ def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_
     # Apply the update function to protein variant details to get a correct variant notation for triplet codon mutations
     for entry in fasta_dict.values():
         for i, variant in enumerate(entry["variants"]):
-            new_details, new_consequences = update_protein_variant_details_one_codon_triplet(
+            new_details, new_consequences, new_positions = update_protein_variant_details_one_codon_triplet(
                 variant["details_protein"],
                 variant["positions"],
                 entry["seq_wt"],
@@ -804,6 +813,7 @@ def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_
             )
             entry["variants"][i]["details_protein"] = ",".join(new_details)
             entry["variants"][i]["consequences"] = ",".join(new_consequences)
+            entry["variants"][i]["positions"] = new_positions
 
     # Splice the sequences around the mutation positions
     for entry in fasta_dict.values():
