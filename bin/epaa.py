@@ -648,23 +648,35 @@ def update_protein_variant_details_one_codon_triplet(
     else:
         updated_consequences = None
 
+    def update_variants_and_consequences_with_original(indices):
+        """
+        Helper function to update variants and consequences for a given set of indices with the original input.
+        """
+        for i in indices:
+            updated_variants.append(variant_details_protein[i])
+            if updated_consequences is not None:
+                updated_consequences.append(consequences[i])
+
     # Iterate over the grouped positions
     for pos, indices in position_groups.items():
         if len(indices) == 1:
             # Single variant at this position, we can simply take it
-            updated_variants.append(variant_details_protein[indices[0]])
-            if updated_consequences is not None:
-                updated_consequences.append(consequences[indices[0]])
+            update_variants_and_consequences_with_original(indices)
         else:
             # Multiple variants at the same position - need to combine
             try:
                 # Ensure position is within wildtype sequence bounds
                 if pos < 1 or pos > len(seq_wt):
                     # Keep original variants if position is out of bounds
-                    updated_variants.extend([variant_details_protein[i] for i in indices])
-                    if updated_consequences is not None:
-                        updated_consequences.extend(consequences[i] for i in indices)
+                    update_variants_and_consequences_with_original(indices)
                     continue
+
+                # Ensure variants are missense, stop gained, or synonymous
+                if consequences is not None:
+                    if any([consequences[i] not in ["missense_variant", "stop_gained", "synonymous_variant"] for i in indices]):
+                        # Keep original variants if not missense or stop gained
+                        update_variants_and_consequences_with_original(indices)
+                        continue
 
                 # Get actual amino acids at this position
                 pos_wt = seq_wt[pos - 1]  # Convert to 0-based index
