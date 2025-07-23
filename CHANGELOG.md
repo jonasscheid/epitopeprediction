@@ -12,6 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [#290](https://github.com/nf-core/epitopeprediction/pull/290) Fixed an issue where the wide format output `binder` column was filled falsely
 - [#292](https://github.com/nf-core/epitopeprediction/pull/292) Fixed an issue with duplicated peptides in wide format output
 
+### `Dependencies`
+
+| Dependency | Old version | New version |
+| ---------- | ----------- | ----------- |
+| `MultiQC`  | 1.29.0      | 1.30.0      |
+| `Nf-core`  | 3.2.1       | 3.3.2       |
+| `bcftools` | 1.20        | 1.21        |
+
 ## 3.0.0 - Wanne - 2025-05-09
 
 ### `Added`
