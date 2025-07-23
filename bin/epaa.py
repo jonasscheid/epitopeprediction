@@ -621,6 +621,7 @@ def update_protein_variant_details_one_codon_triplet(
 
     Returns:
         List[str]: The updated variant details.
+        List[str]: The updated consequences if provided.
     """
     # Input validation
     if not variant_details_protein or not positions:
@@ -798,29 +799,45 @@ def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_
                 # And append to the list of variants for the given transcript
                 entry["variants"].append(variant_entry)
 
-    # Remove entries whithout variants
-    fasta_dict = {k: v for k, v in fasta_dict.items() if v["variants"]}
 
     # Apply the update function to protein variant details to get a correct variant notation for triplet codon mutations
     for entry in fasta_dict.values():
+        filtered_variants = []
         for i, variant in enumerate(entry["variants"]):
-            new_details, new_consequences, new_positions = update_protein_variant_details_one_codon_triplet(
+            new_details, new_consequences = update_protein_variant_details_one_codon_triplet(
                 variant["details_protein"],
                 variant["positions"],
                 entry["seq_wt"],
                 variant["seq"],
                 variant["consequences"]
             )
-            entry["variants"][i]["details_protein"] = ",".join(new_details)
-            entry["variants"][i]["consequences"] = ",".join(new_consequences)
-            entry["variants"][i]["positions"] = new_positions
+
+            # Skip this variant if it has stop_gained (not in last position) and multiple consequences
+            if len(new_consequences) > 1 and "stop_gained" in new_consequences[:-1]:
+                continue
+
+            # Update the variant with new consequences if needed (optional)
+            variant["details_protein"] = ",".join(new_details)
+            variant["consequences"] = ",".join(new_consequences)
+            filtered_variants.append(variant)
+
+        entry["variants"] = filtered_variants
 
     # Splice the sequences around the mutation positions
     for entry in fasta_dict.values():
         for i, variant in enumerate(entry["variants"]):
             start = max(0, min(variant["positions"]) - flanking_region_size)
             end = min(len(variant["seq"]), max(variant["positions"]) + flanking_region_size)
-            entry["variants"][i]["seq"] = variant["seq"][start:end]
+            spliced_seq = variant["seq"][start:end]
+            entry["variants"][i]["seq"] = spliced_seq
+
+    # Remove variants with empty sequences
+    for transcript_id, entry in fasta_dict.items():
+        filtered_variants = [e for e in entry["variants"] if e["seq"]]
+        entry["variants"] = filtered_variants
+
+    # Remove entries whithout variants
+    fasta_dict = {k: v for k, v in fasta_dict.items() if v["variants"]}
 
     # Get a dataframe to look-up peptides by transcript --> to obtain meta data such as uniprot, ensembl IDs, protein variant notation
     peptides_df_for_lookup = mutated_peptides_df.iloc[:, 1:-1].drop_duplicates()
@@ -852,7 +869,7 @@ def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_
         for transcript, entry in fasta_dict.items():
             try:
                 # Construct common header parts, if a meta data field is missing, it will be empty
-                header_start = f">epi|{entry['uniprot'] if 'uniprot' in entry else transcript}_"
+                header_start = f">epi|{entry['uniprot'] if ('uniprot' in entry and entry['uniprot']) else transcript}_"
                 header_middle = f"{entry['ensembl_gene'] if 'ensembl_gene' in entry else ''}|{transcript}|{entry['ensembl_protein'] if 'ensembl_protein' in entry else ''}|{entry['uniprot'] if 'uniprot' in entry else ''}"
                 # Write the wildtype sequence if available
                 if entry["seq_wt"]:
