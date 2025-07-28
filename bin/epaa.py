@@ -759,7 +759,8 @@ def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_
             # Collect variant info
             for var_details in p.vars.values():
                 for variant_detail in var_details:
-                    variant_consequences.append(variant_detail.get_metadata("consequence")[0])
+                    consequence = variant_detail.get_metadata("consequence")
+                    variant_consequences.append(consequence[0] if consequence else "unknown")
                     for coding_variant in variant_detail.coding.values():
                         variant_details_gene.append(coding_variant.cdsMutationSyntax)
                         variant_details_protein.append(coding_variant.aaMutationSyntax)
