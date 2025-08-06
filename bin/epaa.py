@@ -828,6 +828,13 @@ def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_
     for entry in fasta_dict.values():
         for i, variant in enumerate(entry["variants"]):
             start = max(0, min(variant["positions"]) - flanking_region_size)
+            # End point calculation depends on the type of mutation
+            if not "frameshift" in variant["consequences"]:
+                # For non-frameshift mutations, we can splice after the mutation position
+                end = min(len(variant["seq"]), max(variant["positions"]) + flanking_region_size)
+            else:
+                # For frameshifts we want to cover the whole sequence after the frameshift
+                end = len(variant["seq"])
             end = min(len(variant["seq"]), max(variant["positions"]) + flanking_region_size)
             spliced_seq = variant["seq"][start:end]
             entry["variants"][i]["seq"] = spliced_seq
