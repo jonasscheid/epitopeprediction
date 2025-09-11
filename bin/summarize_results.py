@@ -221,6 +221,8 @@ class Utils:
         """
         # Identify non-predictor columns to keep as index
         meta_columns = [col for col in df.columns if not any([x in col for x in ['predictor', 'allele', 'BA', 'rank', 'binder']])]
+        # In some rare cases meta columns can be misinterpreted as str instead of integer
+        df[meta_columns] = df[meta_columns].applymap(lambda x: pd.to_numeric(x, errors='ignore'))
 
         # Pivot to wide format
         df_pivot = df.pivot_table(
