@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - [#290](https://github.com/nf-core/epitopeprediction/pull/290) Fixed an issue where the wide format output `binder` column was filled falsely
 - [#292](https://github.com/nf-core/epitopeprediction/pull/292) Fixed an issue with duplicated peptides in wide format output
+- [#302](https://github.com/nf-core/epitopeprediction/pull/292) Fixed an issue with duplicated peptides in wide format output where metadata columns were sometimes interpreteda str or int
 
 ### `Dependencies`
 
