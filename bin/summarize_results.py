@@ -253,6 +253,7 @@ def main():
     parser.add_argument('--prefix', required=True, help='Prefix for the output files')
     parser.add_argument('--peptide_col_name', default='sequence', help='Name of the peptide column in the input file')
     parser.add_argument('--wide_format_output', action="store_true", help='Name of the peptide column in the input file')
+    parser.add_argument('--binder_only', action="store_true", help='Filter out non-binders from the final results')
     args = parser.parse_args()
 
     # Concat chunked TSV files
@@ -266,6 +267,15 @@ def main():
 
     if args.wide_format_output:
         df = Utils.long2wide(df, args.peptide_col_name)
+
+    # Filter out non-binders if requested
+    if args.binder_only:
+        # For long format, filter rows where binder is True
+        if not args.wide_format_output:
+            df = df[df['binder'] == True]
+        # For wide format, filter rows where the global 'binder' column is True
+        else:
+            df = df[df['binder'] == True]
 
     # Write output file
     df.to_csv(f'{args.prefix}.tsv', sep='\t', index=False)
