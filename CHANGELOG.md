@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### `Added`
 
+- Added `--binder_only` parameter to filter out non-binding peptides from the final results
+
 ### `Fixed`
 
 - [#290](https://github.com/nf-core/epitopeprediction/pull/290) Fixed an issue where the wide format output `binder` column was filled falsely

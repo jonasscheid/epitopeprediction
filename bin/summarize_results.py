@@ -270,12 +270,7 @@ def main():
 
     # Filter out non-binders if requested
     if args.binder_only:
-        # For long format, filter rows where binder is True
-        if not args.wide_format_output:
-            df = df[df['binder'] == True]
-        # For wide format, filter rows where the global 'binder' column is True
-        else:
-            df = df[df['binder'] == True]
+        df = df[df['binder']]
 
     # Write output file
     df.to_csv(f'{args.prefix}.tsv', sep='\t', index=False)
