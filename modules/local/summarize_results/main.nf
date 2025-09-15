@@ -21,14 +21,12 @@ process SUMMARIZE_RESULTS {
     script:
     def args    = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
-    def binder_only = params.binder_only ? '--binder_only' : ''
 
     """
     summarize_results.py \\
         --input . \\
         --prefix ${prefix} \\
         --peptide_col_name ${params.peptide_col_name} \\
-        ${binder_only} \\
         $args
 
 
