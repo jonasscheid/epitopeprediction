@@ -122,6 +122,12 @@
                     "default": false,
                     "description": "Specifies that the output file will be in wide format.",
                     "help_text": "Transforms output file such that for each predictor and allele a column `predictor_allele_predictionMetric` is created."
+                },
+                "binder_only": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Filter out non-binders from the final results.",
+                    "help_text": "When enabled, only peptides predicted as binders by at least one predictor will be included in the final output file."
                 }
             }
         },
