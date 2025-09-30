@@ -758,7 +758,7 @@ def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_
         # Initialize the entry in the fasta_dict
         entry = fasta_dict.setdefault(tid, {"seq_wt": None, "variants": []})
         # If there are no variations, it is a wildtype protein, from which we store the full sequence
-        
+
         if len(p.vars) == 0:
             entry["seq_wt"] = str(p)
         # If there are variations, we need to handle them separately
