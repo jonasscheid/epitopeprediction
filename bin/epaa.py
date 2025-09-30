@@ -297,7 +297,6 @@ def read_vcf(filename, pass_only=True):
                             transcript_id = (
                                 split_coding_c[0] if split_coding_c[0] else split_annotation[vep_fields["feature"]]
                             )
-                            transcript_id = transcript_id #.split(".")[0]
                             tpos = int(cds_pos.split("/")[0].split("-")[0]) - 1
                             if split_annotation[vep_fields["protein_position"]]:
                                 ppos = ( int(split_annotation[vep_fields["protein_position"]].split("-")[0].split("/")[0]) - 1)
@@ -534,14 +533,14 @@ def generate_peptides_from_variants( variants: Variant, martsadapter: MartsAdapt
         try:
             transcripts.extend(generator.generate_transcripts_from_variants([v], martsadapter, ID_SYSTEM_USED))
         except Exception:
-            pass
+            logger.warning(f"Could not generate transcripts for variant {v}. Skipping.")
     # Try/except for generate_proteins_from_transcripts
     prots = []
     for t in transcripts:
         try:
             prots.extend([p for p in generator.generate_proteins_from_transcripts([t])])
         except Exception:
-            pass
+            logger.warning(f"Could not generate proteins for transcript {t}. Skipping.")
 
     # Iterate over each peptide length and generate peptides from mutated proteins and filter out peptides that are not created by a variant
     mutated_peptides_df = []
@@ -758,7 +757,6 @@ def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_
         # Initialize the entry in the fasta_dict
         entry = fasta_dict.setdefault(tid, {"seq_wt": None, "variants": []})
         # If there are no variations, it is a wildtype protein, from which we store the full sequence
-
         if len(p.vars) == 0:
             entry["seq_wt"] = str(p)
         # If there are variations, we need to handle them separately
