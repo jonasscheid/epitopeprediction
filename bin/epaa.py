@@ -538,10 +538,6 @@ def generate_peptides_from_variants( variants: Variant, martsadapter: MartsAdapt
     # Try/except for generate_proteins_from_transcripts
     prots = []
     for t in transcripts:
-        print(t.transcript_id)
-        print(t.vars)
-        print(t)
-        print("---")
         try:
             prots.extend([p for p in generator.generate_proteins_from_transcripts([t])])
         except Exception:
