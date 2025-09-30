@@ -297,7 +297,7 @@ def read_vcf(filename, pass_only=True):
                             transcript_id = (
                                 split_coding_c[0] if split_coding_c[0] else split_annotation[vep_fields["feature"]]
                             )
-                            transcript_id = transcript_id.split(".")[0]
+                            transcript_id = transcript_id #.split(".")[0]
                             tpos = int(cds_pos.split("/")[0].split("-")[0]) - 1
                             if split_annotation[vep_fields["protein_position"]]:
                                 ppos = ( int(split_annotation[vep_fields["protein_position"]].split("-")[0].split("/")[0]) - 1)
@@ -528,8 +528,24 @@ def generate_peptides_from_variants( variants: Variant, martsadapter: MartsAdapt
         prots: List of mutated proteins.
     """
     # Query biomart to generate mutated proteins affected by variants
-    prots = [ p for p in generator.generate_proteins_from_transcripts(
-                generator.generate_transcripts_from_variants(variants, martsadapter, ID_SYSTEM_USED)) ]
+    # Try/except for generate_transcripts_from_variants for each variant
+    transcripts = []
+    for v in variants:
+        try:
+            transcripts.extend(generator.generate_transcripts_from_variants([v], martsadapter, ID_SYSTEM_USED))
+        except Exception:
+            pass
+    # Try/except for generate_proteins_from_transcripts
+    prots = []
+    for t in transcripts:
+        print(t.transcript_id)
+        print(t.vars)
+        print(t)
+        print("---")
+        try:
+            prots.extend([p for p in generator.generate_proteins_from_transcripts([t])])
+        except Exception:
+            pass
 
     # Iterate over each peptide length and generate peptides from mutated proteins and filter out peptides that are not created by a variant
     mutated_peptides_df = []
@@ -746,6 +762,7 @@ def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_
         # Initialize the entry in the fasta_dict
         entry = fasta_dict.setdefault(tid, {"seq_wt": None, "variants": []})
         # If there are no variations, it is a wildtype protein, from which we store the full sequence
+        
         if len(p.vars) == 0:
             entry["seq_wt"] = str(p)
         # If there are variations, we need to handle them separately
@@ -827,7 +844,7 @@ def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_
     # Splice the sequences around the mutation positions
     for entry in fasta_dict.values():
         for i, variant in enumerate(entry["variants"]):
-            start = max(0, min(variant["positions"]) - flanking_region_size)
+            start = max(0, min(variant["positions"]) - flanking_region_size - 1)
             # End point calculation depends on the type of mutation
             if not "frameshift" in variant["consequences"]:
                 # For non-frameshift mutations, we can splice after the mutation position
@@ -835,7 +852,6 @@ def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_
             else:
                 # For frameshifts we want to cover the whole sequence after the frameshift
                 end = len(variant["seq"])
-            end = min(len(variant["seq"]), max(variant["positions"]) + flanking_region_size)
             spliced_seq = variant["seq"][start:end]
             entry["variants"][i]["seq"] = spliced_seq
 
@@ -859,13 +875,10 @@ def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_
             continue
         # Small function to join unique values from a Series or DataFrame
         def unique_join(obj):
-            if isinstance(obj, pd.Series):
-                tmp = ",".join(obj.astype(str))
-            elif isinstance(obj, pd.DataFrame):
-                tmp = ",".join(obj.astype(str).values.flatten())
-            else:
-                tmp =  str(obj)
-            return ",".join(sorted(set(tmp.split(",")))) if tmp else "" # individual items can be already comma-separated
+            if isinstance(obj, str):
+                obj = obj.split(",") # split comma-separated values
+            obj = [i for i in obj if i]
+            return ",".join(sorted(set(obj))) if obj else ""
         # Fill fasta dict with metadata (Uniprot, Ensembl gene & protein IDs)
         # They are assumed to be the same for wt & all mutations of a transcript
         fasta_dict[transcript_id]["uniprot"] = unique_join(peptides_for_transcript["uniprot"])
