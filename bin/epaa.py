@@ -297,7 +297,11 @@ def read_vcf(filename, pass_only=True):
                             transcript_id = (
                                 split_coding_c[0] if split_coding_c[0] else split_annotation[vep_fields["feature"]]
                             )
-                            tpos = int(cds_pos.split("/")[0].split("-")[0]) - 1
+                            try:
+                                tpos = int(cds_pos.split("/")[0].split("-")[0]) - 1
+                            except ValueError:
+                                logger.warning(f"Could not parse cds position {cds_pos} for variant {record}. Skipping.")
+                                continue
                             if split_annotation[vep_fields["protein_position"]]:
                                 ppos = ( int(split_annotation[vep_fields["protein_position"]].split("-")[0].split("/")[0]) - 1)
                             coding[transcript_id] = MutationSyntax(
@@ -342,10 +346,7 @@ def read_vcf(filename, pass_only=True):
                     dict_vars[var] = var
                     list_vars.append(var)
             else:
-                logger.error("No supported variant annotation string found. Aborting.")
-                sys.exit(
-                    "No supported variant annotation string found. Input VCFs require annotation with SNPEff or VEP prior to running the epitope prediction pipeline."
-                )
+                logger.warning(f"No supported variant annotation string found for record {record}. Skipping.")
     transToVar = {}
 
     # fix because of memory/timing issues due to combinatorial explosion
@@ -780,10 +781,12 @@ def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_
             # Sort all lists based on variant_positions_protein
             if variant_positions_protein:
                 sorted_indices = sorted(range(len(variant_positions_protein)), key=lambda i: variant_positions_protein[i])
-                variant_details_gene = [variant_details_gene[i] for i in sorted_indices]
+                if len(variant_details_gene) == len(sorted_indices):
+                    variant_details_gene = [variant_details_gene[i] for i in sorted_indices]
                 variant_details_protein = [variant_details_protein[i] for i in sorted_indices]
                 variant_positions_protein = [variant_positions_protein[i] for i in sorted_indices]
-                variant_consequences = [variant_consequences[i] for i in sorted_indices]
+                if len(variant_consequences) == len(sorted_indices):
+                    variant_consequences = [variant_consequences[i] for i in sorted_indices]
 
             # Validation for proteins with multiple variants, single mutations will always pass this test
             valid = True
