@@ -109,7 +109,7 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Specifies that sequences of proteins, affected by provided variants, will be written to a FASTA file.",
-                    "help_text": "Specifies that sequences of proteins that are affected by the provided genomic variants are written to a `FASTA` file. The resulting `FASTA` file will contain the wild-type and mutated protein sequences. Setting this flag will skip the MHC binding prediction entirely. One can provide arbitrary values for `alleles` and `mhc_class` in the samplesheet."
+                    "help_text": "Specifies that sequences of proteins that are affected by the provided genomic variants are written to a `FASTA` file. The resulting `FASTA` file will contain the wild-type and mutated protein sequences. Setting this flag will skip the MHC binding prediction entirely. One can provide arbitrary values for `alleles` and `mhc_class` in the samplesheet. Currently supports vcf files annotated with Ensembl VEP (recommended settings: `--pick --protein --uniprot --hgvs --vcf`)."
                 },
                 "fasta_peptide_flanking_region_size": {
                     "type": "integer",
