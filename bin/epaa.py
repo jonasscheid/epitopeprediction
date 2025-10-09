@@ -293,10 +293,10 @@ def read_vcf(filename, pass_only=True):
                             prot_coding = ""
                             split_coding_c = c_coding.split(":")
                             split_coding_p = p_coding.split(":")
-                            # we still need the new functionality here in epytope to query with IDs with version (ENTxxx.x)
                             transcript_id = (
                                 split_coding_c[0] if split_coding_c[0] else split_annotation[vep_fields["feature"]]
                             )
+                            transcript_id = transcript_id.split(".")[0]
                             try:
                                 tpos = int(cds_pos.split("/")[0].split("-")[0]) - 1
                             except ValueError:
