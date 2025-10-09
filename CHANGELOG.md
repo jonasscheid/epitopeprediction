@@ -7,7 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### `Added`
 
-- Added `--binder_only` parameter to filter out non-binding peptides from the final results
+- [#304](https://github.com/nf-core/epitopeprediction/pull/304) Added `--binder_only` parameter to filter out non-binding peptides from the final results
+- [#306](https://github.com/nf-core/epitopeprediction/pull/306) Added nf-co2footprint plugin
 
 ### `Fixed`
 
