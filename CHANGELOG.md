@@ -24,6 +24,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | `Nf-core`  | 3.2.1       | 3.3.2       |
 | `bcftools` | 1.20        | 1.21        |
 
+### `Changed`
+
+- [#296](https://github.com/nf-core/epitopeprediction/pull/296) Major rework of Fasta output: new header structure, full wildtype sequences, mutated peptides trimmed around mutation site in a flanking region of defined size and support for overlapping mutations.
+
 ## 3.0.0 - Wanne - 2025-05-09
 
 ### `Added`
