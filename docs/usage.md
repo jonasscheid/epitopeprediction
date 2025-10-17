@@ -4,63 +4,66 @@
 
 > _Documentation of pipeline parameters is generated automatically from the pipeline schema and can no longer be found in markdown files._
 
-## Introduction
-
-<!-- TODO nf-core: Add documentation about anything specific to running your pipeline. For general topics, please point to (and add to) the main nf-core website. -->
-
 ## Samplesheet input
 
-You will need to create a samplesheet with information about the samples you would like to analyse before running the pipeline. Use this parameter to specify its location. It has to be a comma-separated file with 3 columns, and a header row as shown in the examples below.
+You will need to create a samplesheet with information about the samples you would like to analyse before running the pipeline. Use the `--input` parameter to specify its location of a comma-separated file that consists of 3 columns and a header row as shown in the examples below.
 
 ```bash
 --input '[path to samplesheet file]'
 ```
 
-### Multiple runs of the same sample
+### Samplesheet columns
 
-The `sample` identifiers have to be the same when you have re-sequenced the same sample more than once e.g. to increase sequencing depth. The pipeline will concatenate the raw reads before performing any downstream analysis. Below is an example for the same sample sequenced across 3 lanes:
+An [example samplesheet](../assets/samplesheet.tsv) has been provided with the pipeline.
+| Column | Description |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sample` | Custom sample name. This entry will be identical for multiple sequencing libraries/runs from the same sample. |
+| `alleles` | A string that consists of the patient's alleles (separated by ";"), or a full path to a allele ".txt" file where each allele is saved on a row. |
+| `mhc_class` | Specifies the MHC class for which the prediction should be performed. Valid values are: `I`, `II`. |
+| `filename` | Full path to a variant, protein or peptide file (".vcf", ".vcf.gz","fasta", "tsv"). |
 
-```csv title="samplesheet.csv"
-sample,fastq_1,fastq_2
-CONTROL_REP1,AEG588A1_S1_L002_R1_001.fastq.gz,AEG588A1_S1_L002_R2_001.fastq.gz
-CONTROL_REP1,AEG588A1_S1_L003_R1_001.fastq.gz,AEG588A1_S1_L003_R2_001.fastq.gz
-CONTROL_REP1,AEG588A1_S1_L004_R1_001.fastq.gz,AEG588A1_S1_L004_R2_001.fastq.gz
-```
+The pipeline will auto-detect whether a sample is either in variant, protein or peptide file file format using the information provided in the samplesheet. If you provide peptide format (tsv), make sure your peptide list aligns with `--peptide_col_name` (default: "sequence").
+
+Input Formats:
+
+- variant: `.vcf`,`.vcf.gz`
+- protein: `.fasta`
+- peptide: `.tsv` (with peptide column aligning with `--peptide_col_name`, default: "sequence")
+
+An [example samplesheet](../assets/samplesheet.csv) has been provided with the pipeline.
+
+### Genomic variants
+
+> [!IMPORTANT]
+> Please note that genomic variants have to be annotated. Currently, we support variants that have been annotated using [SnpEff](http://pcingola.> github.io/SnpEff/) and [VEP](https://www.ensembl.org/info/docs/tools/vep/index.html).
+
+For genomic variants, reference information from `Ensembl BioMart` is used. The default database version is the most recent `GRCh37` version. If you want to do the predictions based on `GRCh38` as the reference genome, please specify `--genome_reference grch38` in your pipeline call. You can also specify valid `Ensembl BioMart` archive version urls as `--genome_reference` value, e.g. [the archive version of December 2021](http://dec2021.archive.ensembl.org/).
+
+> [!IMPORTANT]
+> Please note that old archive versions are regularly retired, therefore it might be possible that a used version is not available anymore at a later point.
 
 ### Full samplesheet
 
-The pipeline will auto-detect whether a sample is single- or paired-end using the information provided in the samplesheet. The samplesheet can have as many columns as you desire, however, there is a strict requirement for the first 3 columns to match those defined in the table below.
+The `sample` identifiers are used to determine which sample belongs to the input file. Below is an example for the same sample with different input files that can be used:
 
-A final samplesheet file consisting of both single- and paired-end data may look something like the one below. This is for 6 samples, where `TREATMENT_REP3` has been sequenced twice.
-
-```csv title="samplesheet.csv"
-sample,fastq_1,fastq_2
-CONTROL_REP1,AEG588A1_S1_L002_R1_001.fastq.gz,AEG588A1_S1_L002_R2_001.fastq.gz
-CONTROL_REP2,AEG588A2_S2_L002_R1_001.fastq.gz,AEG588A2_S2_L002_R2_001.fastq.gz
-CONTROL_REP3,AEG588A3_S3_L002_R1_001.fastq.gz,AEG588A3_S3_L002_R2_001.fastq.gz
-TREATMENT_REP1,AEG588A4_S4_L003_R1_001.fastq.gz,
-TREATMENT_REP2,AEG588A5_S5_L003_R1_001.fastq.gz,
-TREATMENT_REP3,AEG588A6_S6_L003_R1_001.fastq.gz,
-TREATMENT_REP3,AEG588A6_S6_L004_R1_001.fastq.gz,
+```console
+sample,alleles,mhc_class,filename
+GBM_1,A*01:01;A*02:01;B*07:02;B*24:02;C*03:01;C*04:01,I,gbm_1_variants.vcf(.gz)
+GBM_1,gbm1_alleles.txt,I,gbm_1_proteins.fasta
+GBM_1,DRB1*01:01,II,gbm_1_peptides.tsv
 ```
 
-| Column    | Description                                                                                                                                                                            |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `sample`  | Custom sample name. This entry will be identical for multiple sequencing libraries/runs from the same sample. Spaces in sample names are automatically converted to underscores (`_`). |
-| `fastq_1` | Full path to FastQ file for Illumina short reads 1. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz".                                                             |
-| `fastq_2` | Full path to FastQ file for Illumina short reads 2. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz".                                                             |
-
-An [example samplesheet](../assets/samplesheet.csv) has been provided with the pipeline.
+You can also perform predictions for MHC class `I` and `II` in the same run by specifying the value in the corresponding column (one value per row). Please make sure to select the alleles accordingly. You can also provide your alleles in a `.txt` file containing one allele per row.
 
 ## Running the pipeline
 
 The typical command for running the pipeline is as follows:
 
 ```bash
-nextflow run nf-core/epitopeprediction --input ./samplesheet.csv --outdir ./results --genome GRCh37 -profile docker
+nextflow run nf-core/epitopeprediction --input ./samplesheet.csv --outdir ./results -profile docker
 ```
 
-This will launch the pipeline with the `docker` configuration profile. See below for more information about profiles.
+This will launch the pipeline with the `docker` configuration profile and default options (`mhcflurry` by default). See below for more information about profiles.
 
 Note that the pipeline will create the following files in your working directory:
 
@@ -89,15 +92,34 @@ with:
 ```yaml title="params.yaml"
 input: './samplesheet.csv'
 outdir: './results/'
-genome: 'GRCh37'
 <...>
 ```
 
 You can also generate such `YAML`/`JSON` files via [nf-core/launch](https://nf-co.re/launch).
 
+### Running the pipeline with NetMHC
+
+The pipeline also aims to support the most recent NetMHCpan and NetMHCIIpan versions. If one of the external tools is specified, the path to the corresponding tarball has to be specified. See the [Download section](https://services.healthtech.dtu.dk/services/NetMHCpan-4.1/) of NetMHCpan. When using `conda`, the parameter `--netmhc_system` (if the default value `linux` is not applicable) must also be specified.
+
+A typical command is as follows:
+
+```bash
+nextflow run nf-core/epitopeprediction \
+  -profile docker \
+  --input ./samplesheet.csv \
+  --outdir ./results \
+  --tools 'netmhcpan,netmhciipan' \
+  --min_peptide_length_classI 8 \
+  --max_peptide_length_classI 12 \
+  --min_peptide_length_classII 12 \
+  --max_peptide_length_classII 25 \
+  --netmhcpan_path /path/to/netMHCpan-4.1b.Linux.tar.gz \
+  --netmhciipan_path /path/to/netMHCIIpan-4.3e.Linux.tar.gz \
+```
+
 ### Updating the pipeline
 
-When you run the above command, Nextflow automatically pulls the pipeline code from GitHub and stores it as a cached version. When running the pipeline after this, it will always use the cached version if available - even if the pipeline has been updated since. To make sure that you're running the latest version of the pipeline, make sure that you regularly update the cached version of the pipeline:
+When you run the above command, Nextflow automatically pulls the pipeline code from GitHub and stores it as a cached version. After this, it will use the cached version if available - even if the pipeline has been updated since. To ensure that you're running the latest version of the pipeline, make sure that you regularly update the cached version of the pipeline:
 
 ```bash
 nextflow pull nf-core/epitopeprediction
@@ -189,11 +211,11 @@ To learn how to provide additional arguments to a particular tool of the pipelin
 
 ### nf-core/configs
 
-In most cases, you will only need to create a custom config as a one-off but if you and others within your organisation are likely to be running nf-core pipelines regularly and need to use the same settings regularly it may be a good idea to request that your custom config file is uploaded to the `nf-core/configs` git repository. Before you do this please can you test that the config file works with your pipeline of choice using the `-c` parameter. You can then create a pull request to the `nf-core/configs` repository with the addition of your config file, associated documentation file (see examples in [`nf-core/configs/docs`](https://github.com/nf-core/configs/tree/master/docs)), and amending [`nfcore_custom.config`](https://github.com/nf-core/configs/blob/master/nfcore_custom.config) to include your custom profile.
+In most cases, you will need to create a custom config as a one-off but if you, and others within your organization, are likely to be running nf-core pipelines regularly and need to use the same settings regularly then we can advise that you request that your custom config file is uploaded to the `nf-core/configs` git repository. Before you do this, test that the config file works with your pipeline of choice using the `-c` parameter. Then you can create a pull request to the `nf-core/configs` repository with the addition of your config file, associated documentation file (see examples in [`nf-core/configs/docs`](https://github.com/nf-core/configs/tree/master/docs)), and amending [`nfcore_custom.config`](https://github.com/nf-core/configs/blob/master/nfcore_custom.config) to include your custom profile.
 
 See the main [Nextflow documentation](https://www.nextflow.io/docs/latest/config.html) for more information about creating your own configuration files.
 
-If you have any questions or issues please send us a message on [Slack](https://nf-co.re/join/slack) on the [`#configs` channel](https://nfcore.slack.com/channels/configs).
+If you have any questions or issues, please send us a message on [Slack](https://nf-co.re/join/slack) on the [`#configs` channel](https://nfcore.slack.com/channels/configs).
 
 ## Running in the background
 
@@ -201,7 +223,7 @@ Nextflow handles job submissions and supervises the running jobs. The Nextflow p
 
 The Nextflow `-bg` flag launches Nextflow in the background, detached from your terminal so that the workflow does not stop if you log out of your session. The logs are saved to a file.
 
-Alternatively, you can use `screen` / `tmux` or similar tool to create a detached session which you can log back into at a later time.
+Alternatively, you can use `screen` / `tmux` or a similar tool to create a detached session which you can log back into at a later time.
 Some HPC setups also allow you to run nextflow within a cluster job submitted your job scheduler (from where it submits more jobs).
 
 ## Nextflow memory requirements
