@@ -3,6 +3,11 @@ lint:
     - assets/nf-core-epitopeprediction_logo_light.png
     - docs/images/nf-core-epitopeprediction_logo_light.png
     - docs/images/nf-core-epitopeprediction_logo_dark.png
+    - .vscode/settings.json
+template:
+    skip_features:
+        - fastqc
+        - igenomes
 nf_core_version: 3.4.1
 repository_type: pipeline
 template:
@@ -13,4 +18,4 @@ template:
   name: epitopeprediction
   org: nf-core
   outdir: .
-  version: 2.3.1
+  version: 3.1.0
