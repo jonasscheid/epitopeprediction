@@ -20,7 +20,7 @@
                     "python": "3.11.5"
                 },
                 "Workflow": {
-                    "nf-core/epitopeprediction": "v3.0.0"
+                    "nf-core/epitopeprediction": "v3.1.0"
                 }
             },
             [
@@ -29,9 +29,9 @@
                 "mhcnuggets/sample2_peptides_chunk_0_predicted_mhcnuggets.csv",
                 "multiqc",
                 "multiqc/multiqc_data",
-                "multiqc/multiqc_data/BETA-multiqc.parquet",
                 "multiqc/multiqc_data/llms-full.txt",
                 "multiqc/multiqc_data/multiqc.log",
+                "multiqc/multiqc_data/multiqc.parquet",
                 "multiqc/multiqc_data/multiqc_binder_length_distribution.txt",
                 "multiqc/multiqc_data/multiqc_binder_rank_distribution.txt",
                 "multiqc/multiqc_data/multiqc_binding_affinity_distribution.txt",
@@ -72,9 +72,9 @@
             ]
         ],
         "meta": {
-            "nf-test": "0.9.2",
-            "nextflow": "24.10.5"
+            "nf-test": "0.9.3",
+            "nextflow": "25.04.8"
         },
-        "timestamp": "2025-10-16T12:09:57.5306377"
+        "timestamp": "2025-10-17T12:45:10.95404248"
     }
 }

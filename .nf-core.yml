@@ -3,7 +3,8 @@ lint:
     - assets/nf-core-epitopeprediction_logo_light.png
     - docs/images/nf-core-epitopeprediction_logo_light.png
     - docs/images/nf-core-epitopeprediction_logo_dark.png
-nf_core_version: 3.3.2
+    - .vscode/settings.json
+nf_core_version: 3.4.1
 repository_type: pipeline
 template:
   author: Christopher Mohr, Jonas Scheid
@@ -13,4 +14,7 @@ template:
   name: epitopeprediction
   org: nf-core
   outdir: .
-  version: 2.3.1
+  version: 3.1.0
+  skip_features:
+    - fastqc
+    - igenomes
