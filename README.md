@@ -66,6 +66,7 @@ nextflow run nf-core/epitopeprediction \
    --input samplesheet.csv \
    --outdir <OUTDIR>
 ```
+
 > [!WARNING]
 > This version of the pipeline does not support conda environments, due to issues with upstream dependencies.
 > This means you cannot use the `conda` and `mamba` profiles. Please use `docker` or `singularity` instead.
