@@ -1,7 +1,7 @@
 process EPYTOPE_VARIANT_PREDICTION {
     label 'process_low'
 
-    conda "${moduleDir}/environment.yml"
+    // conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/epytope:3.3.1--pyh7cba7a3_0' :
         'biocontainers/epytope:3.3.1--pyh7cba7a3_0' }"

@@ -1,7 +1,7 @@
 process VARIANT_SPLIT {
     label 'process_single'
 
-    conda "${moduleDir}/environment.yml"
+    // conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/python:3.11' :
         'biocontainers/python:3.11' }"
