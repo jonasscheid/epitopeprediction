@@ -615,7 +615,7 @@ def update_protein_variant_details_one_codon_triplet(
     seq_wt: str,
     seq_mut: str,
     consequences: Union[List[str], None] = None
-) -> List[str]:
+) -> Tuple[List[str], Optional[List[str]]]:
     """
     Update the protein variant details for a single codon triplet (for missense and stop gained mutations).
 
