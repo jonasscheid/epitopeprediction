@@ -631,7 +631,9 @@ def update_protein_variant_details_one_codon_triplet(
         seq_wt: The wild-type protein sequence.
         seq_mut: The mutant protein sequence.
 
-    Returns:
+    Returns: Tuple[List[str], Optional[List[str]]]: A tuple containing:
+    - The updated variant details.
+    - The updated consequences if provided.
         List[str]: The updated variant details.
         List[str]: The updated consequences if provided.
     """
