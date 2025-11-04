@@ -637,7 +637,7 @@ def update_protein_variant_details_one_codon_triplet(
     """
     # Input validation
     if not variant_details_protein or not positions:
-        return variant_details_protein
+        return variant_details_protein, consequences
 
     if len(variant_details_protein) != len(positions):
         raise ValueError("Length of variant_details_protein must match length of positions")
