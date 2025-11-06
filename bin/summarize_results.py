@@ -16,6 +16,8 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 
+import logging
+
 # -------------------------------------------
 #           MultiQC Statistics
 # -------------------------------------------
@@ -163,23 +165,24 @@ class Utils:
             aggregated 'best_allele' and global 'binder' columns.
         """
         rank_metric_best = {'mhcflurry', 'netmhcpan', 'netmhciipan'}
-        ba_metric_best   = {'mhcnuggets', 'mhcnuggetsii'}
+        ba_metric_best   = {'mhcnuggets', 'mhcnuggetsii'} # here for clarity
 
-        # pick the single best row per (predictor, peptide)
         def _pick_best(group):
             pred = group.name[0]
             if pred in rank_metric_best:
-                return group.loc[group['rank'].idxmin()]
+                return group.nsmallest(1, 'rank')
+            elif pred in ba_metric_best:
+                return group.nlargest(1, 'BA')
             else:
-                return group.loc[group['BA'].idxmax()]
+                raise ValueError(f"Unknown predictor '{pred}'. Expected one of: {rank_metric_best | ba_metric_best}")
 
-        # Get best prediction score for each peptide per predictor
         best = (
             df
-            .dropna(subset=['predictor'])
-            .groupby(['predictor', peptide_col], group_keys=False)
+            .dropna(subset=["predictor"])
+            .groupby(['predictor', "sequence"])
             .apply(_pick_best)
             .drop_duplicates(subset=[peptide_col, 'predictor'])
+            .reset_index(drop=True)
         )
 
         # Summarize best values and alleles in summary DataFrame
@@ -200,8 +203,7 @@ class Utils:
                 .apply(lambda row: ','.join(sorted({a for a in row if pd.notna(a)})), axis=1)
         )
 
-        # Add global binder column if any of the predictors report a binder
-        summary_binder = best.groupby(level=peptide_col)['binder'].any().reset_index()
+        summary_binder = best.groupby(peptide_col)['binder'].any().reset_index()
         summary_df = summary_df.reset_index().merge(summary_binder, on=peptide_col, how='left')
 
         return summary_df
@@ -222,7 +224,13 @@ class Utils:
         # Identify non-predictor columns to keep as index
         meta_columns = [col for col in df.columns if not any([x in col for x in ['predictor', 'allele', 'BA', 'rank', 'binder']])]
         # In some rare cases meta columns can be misinterpreted as str instead of integer
-        df[meta_columns] = df[meta_columns].apply(lambda col: col.map(lambda x: pd.to_numeric(x, errors='ignore')))
+        def try_numeric(x):
+            try:
+                return pd.to_numeric(x)
+            except Exception:
+                return x
+
+        df[meta_columns] = df[meta_columns].apply(lambda col: col.map(try_numeric))
 
         # Pivot to wide format
         df_pivot = df.pivot_table(
@@ -235,6 +243,7 @@ class Utils:
         # Flatten the MultiIndex columns
         df_pivot.columns = [f"{pred}_{allele}_{val}" for val, pred, allele in df_pivot.columns]
         df_pivot.reset_index(inplace=True)
+
         # Merge with original metadata to ensure peptides are being kept that could not be predicted
         df_wide = df[meta_columns].drop_duplicates().merge(df_pivot, on=meta_columns, how="left")
 
@@ -264,6 +273,8 @@ def main():
     MultiQC.write_mqc_length_distribution(df, args.prefix, args.peptide_col_name)
     MultiQC.write_mqc_rank_distribution(df, args.prefix, args.peptide_col_name)
     MultiQC.write_mqc_ba_distribution(df, args.prefix, args.peptide_col_name)
+
+    df.to_pickle(f'{args.prefix}_raw.pkl')
 
     if args.wide_format_output:
         df = Utils.long2wide(df, args.peptide_col_name)
