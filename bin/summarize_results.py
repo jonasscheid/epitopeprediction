@@ -80,10 +80,10 @@ class MultiQC:
         )
         bins = np.linspace(0, 10, 21)
         bin_centers = (bins[:-1] + bins[1:]) / 2
-        bin_labels = [f"{x:.1f}" for x in bin_centers]
+        bin_labels = [f'{x:.1f}' for x in bin_centers]
         binned = pd.cut(best_rank['rank'], bins=bins, labels=bin_labels)
         rank_distribution_dict = binned.value_counts().sort_index().to_dict()
-        rank_distribution_dict = {"0.0": 0, **rank_distribution_dict}
+        rank_distribution_dict = {'0.0': 0, **rank_distribution_dict}
         mqc_rank_distribution_dict = {
             'id': 'binder_rank_distribution',
             'section_name': 'Binder Rank Distribution',
@@ -110,10 +110,10 @@ class MultiQC:
         )
         bins = np.linspace(0, 1, 21)
         bin_centers = (bins[:-1] + bins[1:]) / 2
-        bin_labels = [f"{x:.2f}" for x in bin_centers]
+        bin_labels = [f'{x:.2f}' for x in bin_centers]
         binned = pd.cut(best_ba['BA'], bins=bins, labels=bin_labels)
         ba_distribution_dict = binned.value_counts().sort_index().to_dict()
-        ba_distribution_dict = {"0.00": 0, **ba_distribution_dict}
+        ba_distribution_dict = {'0.00': 0, **ba_distribution_dict}
         mqc_ba_distribution_dict = {
             'id': 'binding_affinity_distribution',
             'section_name': 'Binding Affinity Distribution',
@@ -163,23 +163,24 @@ class Utils:
             aggregated 'best_allele' and global 'binder' columns.
         """
         rank_metric_best = {'mhcflurry', 'netmhcpan', 'netmhciipan'}
-        ba_metric_best   = {'mhcnuggets', 'mhcnuggetsii'}
+        ba_metric_best   = {'mhcnuggets', 'mhcnuggetsii'} # here for clarity
 
-        # pick the single best row per (predictor, peptide)
         def _pick_best(group):
             pred = group.name[0]
             if pred in rank_metric_best:
-                return group.loc[group['rank'].idxmin()]
+                return group.nsmallest(1, 'rank')
+            elif pred in ba_metric_best:
+                return group.nlargest(1, 'BA')
             else:
-                return group.loc[group['BA'].idxmax()]
+                raise ValueError(f"Unknown predictor '{pred}'. Expected one of: {rank_metric_best | ba_metric_best}")
 
-        # Get best prediction score for each peptide per predictor
         best = (
             df
             .dropna(subset=['predictor'])
-            .groupby(['predictor', peptide_col], group_keys=False)
+            .groupby(['predictor', peptide_col])
             .apply(_pick_best)
             .drop_duplicates(subset=[peptide_col, 'predictor'])
+            .reset_index(drop=True)
         )
 
         # Summarize best values and alleles in summary DataFrame
@@ -200,8 +201,7 @@ class Utils:
                 .apply(lambda row: ','.join(sorted({a for a in row if pd.notna(a)})), axis=1)
         )
 
-        # Add global binder column if any of the predictors report a binder
-        summary_binder = best.groupby(level=peptide_col)['binder'].any().reset_index()
+        summary_binder = best.groupby(peptide_col)['binder'].any().reset_index()
         summary_df = summary_df.reset_index().merge(summary_binder, on=peptide_col, how='left')
 
         return summary_df
@@ -222,7 +222,13 @@ class Utils:
         # Identify non-predictor columns to keep as index
         meta_columns = [col for col in df.columns if not any([x in col for x in ['predictor', 'allele', 'BA', 'rank', 'binder']])]
         # In some rare cases meta columns can be misinterpreted as str instead of integer
-        df[meta_columns] = df[meta_columns].apply(lambda col: col.map(lambda x: pd.to_numeric(x, errors='ignore')))
+        def try_numeric(x):
+            try:
+                return pd.to_numeric(x)
+            except Exception:
+                return x
+
+        df[meta_columns] = df[meta_columns].apply(lambda col: col.map(try_numeric))
 
         # Pivot to wide format
         df_pivot = df.pivot_table(
@@ -233,8 +239,9 @@ class Utils:
         )
 
         # Flatten the MultiIndex columns
-        df_pivot.columns = [f"{pred}_{allele}_{val}" for val, pred, allele in df_pivot.columns]
+        df_pivot.columns = [f'{pred}_{allele}_{val}' for val, pred, allele in df_pivot.columns]
         df_pivot.reset_index(inplace=True)
+
         # Merge with original metadata to ensure peptides are being kept that could not be predicted
         df_wide = df[meta_columns].drop_duplicates().merge(df_pivot, on=meta_columns, how="left")
 
@@ -252,8 +259,8 @@ def main():
     parser.add_argument('--input', required=True, help='Path to directory containing the TSV files to be concatenated')
     parser.add_argument('--prefix', required=True, help='Prefix for the output files')
     parser.add_argument('--peptide_col_name', default='sequence', help='Name of the peptide column in the input file')
-    parser.add_argument('--wide_format_output', action="store_true", help='Name of the peptide column in the input file')
-    parser.add_argument('--binder_only', action="store_true", help='Filter out non-binders from the final results')
+    parser.add_argument('--wide_format_output', action='store_true', help='Generate wide format output')
+    parser.add_argument('--binder_only', action='store_true', help='Filter out non-binders from the final results')
     args = parser.parse_args()
 
     # Concat chunked TSV files
@@ -264,6 +271,8 @@ def main():
     MultiQC.write_mqc_length_distribution(df, args.prefix, args.peptide_col_name)
     MultiQC.write_mqc_rank_distribution(df, args.prefix, args.peptide_col_name)
     MultiQC.write_mqc_ba_distribution(df, args.prefix, args.peptide_col_name)
+
+    df.to_pickle(f'{args.prefix}_raw.pkl')
 
     if args.wide_format_output:
         df = Utils.long2wide(df, args.peptide_col_name)
