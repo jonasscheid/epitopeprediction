@@ -16,8 +16,6 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 
-import logging
-
 # -------------------------------------------
 #           MultiQC Statistics
 # -------------------------------------------
@@ -82,10 +80,10 @@ class MultiQC:
         )
         bins = np.linspace(0, 10, 21)
         bin_centers = (bins[:-1] + bins[1:]) / 2
-        bin_labels = [f"{x:.1f}" for x in bin_centers]
+        bin_labels = [f'{x:.1f}' for x in bin_centers]
         binned = pd.cut(best_rank['rank'], bins=bins, labels=bin_labels)
         rank_distribution_dict = binned.value_counts().sort_index().to_dict()
-        rank_distribution_dict = {"0.0": 0, **rank_distribution_dict}
+        rank_distribution_dict = {'0.0': 0, **rank_distribution_dict}
         mqc_rank_distribution_dict = {
             'id': 'binder_rank_distribution',
             'section_name': 'Binder Rank Distribution',
@@ -112,10 +110,10 @@ class MultiQC:
         )
         bins = np.linspace(0, 1, 21)
         bin_centers = (bins[:-1] + bins[1:]) / 2
-        bin_labels = [f"{x:.2f}" for x in bin_centers]
+        bin_labels = [f'{x:.2f}' for x in bin_centers]
         binned = pd.cut(best_ba['BA'], bins=bins, labels=bin_labels)
         ba_distribution_dict = binned.value_counts().sort_index().to_dict()
-        ba_distribution_dict = {"0.00": 0, **ba_distribution_dict}
+        ba_distribution_dict = {'0.00': 0, **ba_distribution_dict}
         mqc_ba_distribution_dict = {
             'id': 'binding_affinity_distribution',
             'section_name': 'Binding Affinity Distribution',
@@ -178,8 +176,8 @@ class Utils:
 
         best = (
             df
-            .dropna(subset=["predictor"])
-            .groupby(['predictor', "sequence"])
+            .dropna(subset=['predictor'])
+            .groupby(['predictor', peptide_col])
             .apply(_pick_best)
             .drop_duplicates(subset=[peptide_col, 'predictor'])
             .reset_index(drop=True)
@@ -241,7 +239,7 @@ class Utils:
         )
 
         # Flatten the MultiIndex columns
-        df_pivot.columns = [f"{pred}_{allele}_{val}" for val, pred, allele in df_pivot.columns]
+        df_pivot.columns = [f'{pred}_{allele}_{val}' for val, pred, allele in df_pivot.columns]
         df_pivot.reset_index(inplace=True)
 
         # Merge with original metadata to ensure peptides are being kept that could not be predicted
@@ -261,8 +259,8 @@ def main():
     parser.add_argument('--input', required=True, help='Path to directory containing the TSV files to be concatenated')
     parser.add_argument('--prefix', required=True, help='Prefix for the output files')
     parser.add_argument('--peptide_col_name', default='sequence', help='Name of the peptide column in the input file')
-    parser.add_argument('--wide_format_output', action="store_true", help='Name of the peptide column in the input file')
-    parser.add_argument('--binder_only', action="store_true", help='Filter out non-binders from the final results')
+    parser.add_argument('--wide_format_output', action='store_true', help='Generate wide format output')
+    parser.add_argument('--binder_only', action='store_true', help='Filter out non-binders from the final results')
     args = parser.parse_args()
 
     # Concat chunked TSV files
