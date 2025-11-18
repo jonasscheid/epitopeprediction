@@ -6,9 +6,8 @@ import logging
 import re
 import sys
 from datetime import datetime
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List, Union, Optional
 import itertools
-from typing import List, Union
 
 import epytope.Core.Generator as generator
 import numpy as np
