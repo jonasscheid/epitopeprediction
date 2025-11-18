@@ -31,7 +31,7 @@ Tables are written per chromosome in a `tsv`.
 
 **Output directory:** `epytope/[sample]_chr[1-22|X|Y].tsv`
 
-These generated mutated peptides are then passed to the MHC binding prediction subworkflow, where they are scored against the sample's individual MHC typing.
+These generated mutated peptides are then passed to the MHC binding prediction subworkflow, where they are scored against the sample's individual MHC alleles.
 
 **Optionally** you can obtain a **FASTA** file containing the variant protein sequences by providing `--fasta_output`. This can be specifically useful as input database for mass spectrometry-based pipelines such as [nf-core/mhcquant](https://github.com/nf-core/mhcquant). Sequences will be provided in full length for the wildtype and spliced around the mutation site for variant sequences (`--fasta_peptide_flanking_region_size` parameter).
 
