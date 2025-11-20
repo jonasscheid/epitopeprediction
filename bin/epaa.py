@@ -828,13 +828,12 @@ def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_
                 variant["consequences"]
             )
 
-            # Skip this variant if it has stop_gained (not in last position) and multiple consequences
-            if len(new_consequences) > 1 and "stop_gained" in new_consequences[:-1]:
-                continue
-
             # Update the variant with new consequences if needed (optional)
             variant["details_protein"] = ",".join(new_details)
-            variant["consequences"] = ",".join(new_consequences)
+            if new_consequences is not None:
+                variant["consequences"] = ",".join(new_consequences)
+            else:
+                variant["consequences"] = ""
             filtered_variants.append(variant)
 
         entry["variants"] = filtered_variants
