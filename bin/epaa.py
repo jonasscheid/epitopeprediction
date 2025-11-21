@@ -6,7 +6,7 @@ import logging
 import re
 import sys
 from datetime import datetime
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List, Union, Optional
 import itertools
 
 import epytope.Core.Generator as generator
@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 import vcf
 from Bio import SeqUtils, SeqIO
+from Bio.Data import IUPACData
 from epytope.Core.Allele import Allele
 from epytope.Core.Peptide import Peptide
 from epytope.Core.Variant import MutationSyntax, Variant, VariationType
@@ -21,7 +22,7 @@ from epytope.EpitopePrediction import EpitopePredictorFactory
 from epytope.IO.ADBAdapter import EIdentifierTypes
 from epytope.IO.MartsAdapter import MartsAdapter
 
-__author__ = "Christopher Mohr, Jonas Scheid"
+__author__ = "Christopher Mohr, Jonas Scheid, Axel Walter"
 VERSION = "2.0"
 
 # Define global variables
@@ -49,6 +50,7 @@ def parse_args():
     parser.add_argument("-i", "--input", help="SnpEff or VEP annotated variants in VCF format", type=str, required=True)
     parser.add_argument("-p", "--prefix", help="Prefix of output files", type=str, required=True)
     parser.add_argument("--fasta_output", help="Create FASTA file with protein sequences", default=False, action="store_true")
+    parser.add_argument("--flanking_region_size", help="Size of flanking region around mutated peptides in FASTA output", type=int, default=25)
     parser.add_argument("--min_length", help="Minimum peptide length of mutated peptides", type=int, default=8)
     parser.add_argument("--max_length", help="Maximum peptide length of mutated peptides", type=int, default=14)
     parser.add_argument("--genome_reference", help="Reference, retrieved information will be based on this ensembl version", default="https://grch37.ensembl.org/")
@@ -219,6 +221,7 @@ def read_vcf(filename, pass_only=True):
             # check if we have SNPEFF or VEP annotated variants, otherwise abort
             if record.INFO.get(SNPEFF_KEY, False) or record.INFO.get(VEP_KEY, False):
                 isSynonymous = False
+                consequence = "unknown"
                 coding = dict()
                 types = []
                 # SNPEFF annotation
@@ -278,6 +281,7 @@ def read_vcf(filename, pass_only=True):
                     for annotation in record.INFO[VEP_KEY]:
                         split_annotation = annotation.split("|")
                         isSynonymous = "synonymous" in split_annotation[vep_fields["consequence"]]
+                        consequence = split_annotation[vep_fields["consequence"]]
                         gene = split_annotation[vep_fields["gene"]]
                         c_coding = split_annotation[vep_fields["hgvsc"]]
                         p_coding = split_annotation[vep_fields["hgvsp"]]
@@ -288,12 +292,15 @@ def read_vcf(filename, pass_only=True):
                             prot_coding = ""
                             split_coding_c = c_coding.split(":")
                             split_coding_p = p_coding.split(":")
-                            # we still need the new functionality here in epytope to query with IDs with version (ENTxxx.x)
                             transcript_id = (
                                 split_coding_c[0] if split_coding_c[0] else split_annotation[vep_fields["feature"]]
                             )
                             transcript_id = transcript_id.split(".")[0]
-                            tpos = int(cds_pos.split("/")[0].split("-")[0]) - 1
+                            try:
+                                tpos = int(cds_pos.split("/")[0].split("-")[0]) - 1
+                            except ValueError:
+                                logger.warning(f"Could not parse cds position {cds_pos} for variant {record}. Skipping.")
+                                continue
                             if split_annotation[vep_fields["protein_position"]]:
                                 ppos = ( int(split_annotation[vep_fields["protein_position"]].split("-")[0].split("/")[0]) - 1)
                             coding[transcript_id] = MutationSyntax(
@@ -312,6 +319,7 @@ def read_vcf(filename, pass_only=True):
                         coding,
                         isHomozygous,
                         isSynonymous,
+                        metadata={"consequence": consequence}
                     )
                     var.gene = gene
                     var.log_metadata("vardbid", variation_dbid)
@@ -337,10 +345,7 @@ def read_vcf(filename, pass_only=True):
                     dict_vars[var] = var
                     list_vars.append(var)
             else:
-                logger.error("No supported variant annotation string found. Aborting.")
-                sys.exit(
-                    "No supported variant annotation string found. Input VCFs require annotation with SNPEff or VEP prior to running the epitope prediction pipeline."
-                )
+                logger.warning(f"No supported variant annotation string found for record {record}. Skipping.")
     transToVar = {}
 
     # fix because of memory/timing issues due to combinatorial explosion
@@ -522,8 +527,20 @@ def generate_peptides_from_variants( variants: Variant, martsadapter: MartsAdapt
         prots: List of mutated proteins.
     """
     # Query biomart to generate mutated proteins affected by variants
-    prots = [ p for p in generator.generate_proteins_from_transcripts(
-                generator.generate_transcripts_from_variants(variants, martsadapter, ID_SYSTEM_USED)) ]
+    # Try/except for generate_transcripts_from_variants for each variant
+    transcripts = []
+    for v in variants:
+        try:
+            transcripts.extend(generator.generate_transcripts_from_variants([v], martsadapter, ID_SYSTEM_USED))
+        except Exception:
+            logger.warning(f"Could not generate transcripts for variant {v}. Skipping.")
+    # Try/except for generate_proteins_from_transcripts
+    prots = []
+    for t in transcripts:
+        try:
+            prots.extend([p for p in generator.generate_proteins_from_transcripts([t])])
+        except Exception:
+            logger.warning(f"Could not generate proteins for transcript {t}. Skipping.")
 
     # Iterate over each peptide length and generate peptides from mutated proteins and filter out peptides that are not created by a variant
     mutated_peptides_df = []
@@ -591,6 +608,298 @@ def write_empty_files(args: argparse.Namespace):
     if args.fasta_output:
         open(f"{args.prefix}.fasta", "w").close()
 
+def update_protein_variant_details_one_codon_triplet(
+    variant_details_protein: List[str],
+    positions: List[int],
+    seq_wt: str,
+    seq_mut: str,
+    consequences: Union[List[str], None] = None
+) -> Tuple[List[str], Optional[List[str]]]:
+    """
+    Update the protein variant details for a single codon triplet (for missense and stop gained mutations).
+
+    In case of multiple mutations in a codon triplet we need to update the variant details
+    to reflect the actual mutation syntax, e.g. "c.241G>T,c.242A>T" currently annotated as "p.Glu81Ter,p.Glu81Val"
+    actual combined mutation --> "p.Glu81Leu"
+    Without phasing, VEP does not annotate these together, so we have to do it manually for now
+
+    Args:
+        variant_details_protein: A list of protein variant details.
+        positions: A list of positions corresponding to the mutations in the protein sequence.
+        consequences: A list of consequences for the mutations.
+        seq_wt: The wild-type protein sequence.
+        seq_mut: The mutant protein sequence.
+
+    Returns: Tuple[List[str], Optional[List[str]]]: A tuple containing:
+    - The updated variant details.
+    - The updated consequences if provided.
+        List[str]: The updated variant details.
+        List[str]: The updated consequences if provided.
+    """
+    # Input validation
+    if not variant_details_protein or not positions:
+        return variant_details_protein, consequences
+
+    if len(variant_details_protein) != len(positions):
+        raise ValueError("Length of variant_details_protein must match length of positions")
+
+    # Prepare lookup for single-letter to three-letter amino acid codes
+    aa1to3 = IUPACData.protein_letters_1to3.copy()
+    aa1to3["*"] = "Ter"
+
+    # Group positions by their list index values to find duplicates
+    position_groups = {}
+    for i, pos in enumerate(positions):
+        if pos not in position_groups:
+            position_groups[pos] = []
+        position_groups[pos].append(i)
+
+    # Collect updated variants
+    updated_variants = []
+    # And, if consequences are provided, update them accordingly
+    if consequences is not None and len(consequences) == len(variant_details_protein):
+        updated_consequences = []
+    else:
+        updated_consequences = None
+    # And, for sorting, updated positions
+    updated_positions = []
+
+    def update_with_original(indices):
+        """
+        Helper function to update variants, positions and consequences for a given set of indices with the original input.
+        """
+        for i in indices:
+            updated_variants.append(variant_details_protein[i])
+            updated_positions.append(positions[i])
+            if updated_consequences is not None:
+                updated_consequences.append(consequences[i])
+
+    # Iterate over the grouped positions
+    for pos, indices in position_groups.items():
+        if len(indices) == 1:
+            # Single variant at this position, we can simply take it
+            update_with_original(indices)
+        else:
+            # Multiple variants at the same position - need to combine
+            try:
+                # Ensure position is within wildtype sequence bounds
+                if pos < 1 or pos > len(seq_wt):
+                    # Keep original variants if position is out of bounds
+                    update_with_original(indices)
+                    continue
+
+                # Ensure variants are missense, stop gained, or synonymous
+                if consequences is not None:
+                    if any([consequences[i] not in ["missense_variant", "stop_gained", "synonymous_variant"] for i in indices]):
+                        # Keep original variants if not missense or stop gained
+                        update_with_original(indices)
+                        continue
+
+                # Get actual amino acids at this position
+                pos_wt = seq_wt[pos - 1]  # Convert to 0-based index
+                pos_mut = seq_mut[pos - 1] if pos <= len(seq_mut) else "*"
+
+                # Convert to three-letter codes
+                pos_wt_3letter = aa1to3.get(pos_wt, pos_wt)
+                pos_mut_3letter = aa1to3.get(pos_mut, pos_mut)
+
+                # Create the combined variant annotation
+                if pos_wt == pos_mut:
+                    # Synonymous mutation
+                    new_variant = f"p.{pos_wt_3letter}{pos}="
+                else:
+                    new_variant = f"p.{pos_wt_3letter}{pos}{pos_mut_3letter}"
+                # Update the variants
+                updated_variants.append(new_variant)
+                # Update the positions for sorting
+                updated_positions.append(pos)
+                # And update the consequence for the new combined variant
+                if updated_consequences is not None:
+                    if pos_wt == pos_mut:
+                        # Synonymous mutation, keep the first consequence
+                        updated_consequences.append("synonymous_variant")
+                    elif pos_mut == "*":
+                        updated_consequences.append("stop_gained")
+                    else:
+                        updated_consequences.append("missense_variant")
+
+            # Should not happen, but just in case, keep the original variants
+            except (IndexError, KeyError):
+                update_with_original(indices)
+
+    # Sort updated variants and consequences based on updated positions
+    if updated_positions:
+        sorted_indices = sorted(range(len(updated_positions)), key=lambda i: updated_positions[i])
+        updated_variants = [updated_variants[i] for i in sorted_indices]
+        if updated_consequences is not None:
+            updated_consequences = [updated_consequences[i] for i in sorted_indices]
+        updated_positions = [updated_positions[i] for i in sorted_indices]
+
+    return updated_variants, updated_consequences
+
+def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_peptides_df: pd.DataFrame, flanking_region_size: int):
+    """
+    Generates a FASTA file from mutated protein sequences,
+    integrating additional peptide information from a DataFrame.
+
+    Args:
+        output_filename (str): The output FASTA file name.
+        mutated_proteins (list): A list of protein objects.
+        mutated_peptides_df (pd.DataFrame): A DataFrame containing peptide-related information such as accessions.
+        flanking_region_size (int): The size of the flanking region added on each side of a mutation within a peptide.
+    """
+
+    # Build FASTA dict: wildtypes and mutations per transcript
+    fasta_dict = {}
+
+    # Iterate over mutated proteins to collect sequences and mutations
+    for p in mutated_proteins:
+        # Get the transcript ID from the protein
+        tid = p.transcript_id.split(":")[0]
+        # Initialize the entry in the fasta_dict
+        entry = fasta_dict.setdefault(tid, {"seq_wt": None, "variants": []})
+        # If there are no variations, it is a wildtype protein, from which we store the full sequence
+        if len(p.vars) == 0:
+            entry["seq_wt"] = str(p)
+        # If there are variations, we need to handle them separately
+        else:
+            # Collect all genomic variant details, protein variant details and positions
+            variant_details_gene = []
+            variant_details_protein = []
+            variant_positions_protein = []
+            variant_consequences = []
+
+            # Collect variant info
+            for var_details in p.vars.values():
+                for variant_detail in var_details:
+                    consequence = variant_detail.get_metadata("consequence")
+                    variant_consequences.append(consequence[0] if consequence else "unknown")
+                    for coding_variant in variant_detail.coding.values():
+                        variant_details_gene.append(coding_variant.cdsMutationSyntax)
+                        variant_details_protein.append(coding_variant.aaMutationSyntax)
+                        variant_positions_protein.append(coding_variant.protPos + 1)  # Convert to 1-based index
+
+            # Sort all lists based on variant_positions_protein
+            if variant_positions_protein:
+                sorted_indices = sorted(range(len(variant_positions_protein)), key=lambda i: variant_positions_protein[i])
+                if len(variant_details_gene) == len(sorted_indices):
+                    variant_details_gene = [variant_details_gene[i] for i in sorted_indices]
+                variant_details_protein = [variant_details_protein[i] for i in sorted_indices]
+                variant_positions_protein = [variant_positions_protein[i] for i in sorted_indices]
+                if len(variant_consequences) == len(sorted_indices):
+                    variant_consequences = [variant_consequences[i] for i in sorted_indices]
+
+            # Validation for proteins with multiple variants, single mutations will always pass this test
+            valid = True
+            # In case of multiple mutations, we want to keep them only if all combinations are close together (within one flanking region)
+            # examples (based on flanking_region_size of 25):
+            # valid:
+            # positions = [101, 112]
+            # positions = [50, 64, 71] --> one peptide could span all mutations in theory
+            # invalid:
+            # positions = [50, 64, 80] --> too far apart, 50 and 80 can not be covered by one peptide, the [50, 64] will appear separatey in the mutated proteins list
+            for i in variant_positions_protein:
+                for j in variant_positions_protein:
+                    if i != j and abs(i - j) > flanking_region_size:
+                        valid = False
+                        break
+            if valid:
+                # Create a variant entry for the FASTA dict
+                variant_entry = {
+                    "seq": str(p),
+                    "details_gene": ",".join(variant_details_gene),
+                    "details_protein": variant_details_protein,
+                    "consequences": variant_consequences,
+                    "positions": variant_positions_protein,
+                }
+                # And append to the list of variants for the given transcript
+                entry["variants"].append(variant_entry)
+
+
+    # Apply the update function to protein variant details to get a correct variant notation for triplet codon mutations
+    for entry in fasta_dict.values():
+        filtered_variants = []
+        for i, variant in enumerate(entry["variants"]):
+            new_details, new_consequences = update_protein_variant_details_one_codon_triplet(
+                variant["details_protein"],
+                variant["positions"],
+                entry["seq_wt"],
+                variant["seq"],
+                variant["consequences"]
+            )
+
+            # Update the variant with new consequences if needed (optional)
+            variant["details_protein"] = ",".join(new_details)
+            if new_consequences is not None:
+                variant["consequences"] = ",".join(new_consequences)
+            else:
+                variant["consequences"] = ""
+            filtered_variants.append(variant)
+
+        entry["variants"] = filtered_variants
+
+    # Splice the sequences around the mutation positions
+    for entry in fasta_dict.values():
+        for i, variant in enumerate(entry["variants"]):
+            start = max(0, min(variant["positions"]) - flanking_region_size - 1)
+            # End point calculation depends on the type of mutation
+            if not "frameshift" in variant["consequences"]:
+                # For non-frameshift mutations, we can splice after the mutation position
+                end = min(len(variant["seq"]), max(variant["positions"]) + flanking_region_size)
+            else:
+                # For frameshifts we want to cover the whole sequence after the frameshift
+                end = len(variant["seq"])
+            spliced_seq = variant["seq"][start:end]
+            entry["variants"][i]["seq"] = spliced_seq
+
+    # Remove variants with empty sequences
+    for transcript_id, entry in fasta_dict.items():
+        filtered_variants = [e for e in entry["variants"] if e["seq"]]
+        entry["variants"] = filtered_variants
+
+    # Remove entries whithout variants
+    fasta_dict = {k: v for k, v in fasta_dict.items() if v["variants"]}
+
+    # Get a dataframe to look-up peptides by transcript --> to obtain meta data such as uniprot, ensembl IDs, protein variant notation
+    peptides_df_for_lookup = mutated_peptides_df.iloc[:, 1:-1].drop_duplicates()
+
+    # Add metadata to the FASTA dict
+    for transcript_id, entry in fasta_dict.items():
+        # Get the relevant peptide information for this transcript
+        peptides_for_transcript = peptides_df_for_lookup[peptides_df_for_lookup["transcripts"] == transcript_id]
+        # If no peptides are found for this transcript, skip to the next one (meta data is optional)
+        if peptides_for_transcript.empty:
+            continue
+        # Small function to join unique values from a Series or DataFrame
+        def unique_join(obj):
+            if isinstance(obj, str):
+                obj = obj.split(",") # split comma-separated values
+            obj = [i for i in obj if i]
+            return ",".join(sorted(set(obj))) if obj else ""
+        # Fill fasta dict with metadata (Uniprot, Ensembl gene & protein IDs)
+        # They are assumed to be the same for wt & all mutations of a transcript
+        fasta_dict[transcript_id]["uniprot"] = unique_join(peptides_for_transcript["uniprot"])
+        fasta_dict[transcript_id]["ensembl_gene"] = unique_join(peptides_for_transcript["gene"])
+        fasta_dict[transcript_id]["ensembl_protein"] = unique_join(peptides_for_transcript["proteins"])
+
+    # Write the FASTA file
+    with open(output_filename, "w") as protein_outfile:
+        for transcript, entry in fasta_dict.items():
+            try:
+                # Construct common header parts, if a meta data field is missing, it will be empty
+                header_start = f">epi|{entry['uniprot'] if ('uniprot' in entry and entry['uniprot']) else transcript}_"
+                header_middle = f"{entry['ensembl_gene'] if 'ensembl_gene' in entry else ''}|{transcript}|{entry['ensembl_protein'] if 'ensembl_protein' in entry else ''}|{entry['uniprot'] if 'uniprot' in entry else ''}"
+                # Write the wildtype sequence if available
+                if entry["seq_wt"]:
+                    protein_outfile.write(f"{header_start}wt|{header_middle}\n")
+                    protein_outfile.write(f"{entry['seq_wt']}\n")
+                # Write the mutated sequences
+                for i, variant in enumerate(entry["variants"]):
+                    protein_outfile.write(f"{header_start}mut_{i+1}|{header_middle}|{variant['consequences']}|{variant['details_gene']}|{variant['details_protein'] if 'details_protein' in variant else 'unknown'}\n")
+                    protein_outfile.write(f"{variant['seq']}\n")
+            except Exception as e:
+                logger.error(f"Error writing FASTA entry for transcript {transcript}: {e}")
+    logger.info(f"FASTA file successfully generated: {output_filename}")
 
 def __main__():
     args = parse_args()
@@ -639,20 +948,8 @@ def __main__():
     mutated_peptides_df = mutated_peptides_df.rename(columns={"sequence": args.peptide_col_name})
     mutated_peptides_df.to_csv(f"{args.prefix}.tsv", index=False, sep="\t")
 
-    # write mutated protein sequences to fasta file
     if args.fasta_output:
-        with open(f"{args.prefix}.fasta", "w") as protein_outfile:
-            for p in mutated_proteins:
-                variants = []
-                for v in p.vars:
-                    variants += p.vars[v]
-                c = [x.coding.values() for x in variants]
-                cf = list(itertools.chain.from_iterable(c))
-                cds = ",".join([y.cdsMutationSyntax for y in set(cf)])
-                aas = ",".join([y.aaMutationSyntax for y in set(cf)])
-                protein_outfile.write(f">{p.transcript_id}:{aas}:{cds}\n")
-                protein_outfile.write(f"{str(p)}\n")
-
+        generate_fasta_output(f"{args.prefix}.fasta", mutated_proteins, mutated_peptides_df, args.flanking_region_size)
 
 if __name__ == "__main__":
     __main__()

@@ -3,14 +3,37 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 3.1.0 - Lustnau - 2025-10-22
+
+### `Added`
+
+- [#304](https://github.com/nf-core/epitopeprediction/pull/304) Added `--binder_only` parameter to filter out non-binding peptides from the final results
+- [#306](https://github.com/nf-core/epitopeprediction/pull/306) Added nf-co2footprint plugin
+
+### `Fixed`
+
+- [#290](https://github.com/nf-core/epitopeprediction/pull/290) Fixed an issue where the wide format output `binder` column was filled falsely
+- [#292](https://github.com/nf-core/epitopeprediction/pull/292) Fixed an issue with duplicated peptides in wide format output
+- [#302](https://github.com/nf-core/epitopeprediction/pull/292) Fixed an issue with duplicated peptides in wide format output where metadata columns were sometimes interpreteda str or int
+
+### `Dependencies`
+
+| Dependency | Old version | New version |
+| ---------- | ----------- | ----------- |
+| `MultiQC`  | 1.29.0      | 1.31.0      |
+| `nf-core`  | 3.2.1       | 3.4.1       |
+| `bcftools` | 1.20        | 1.21        |
+
+### `Changed`
+
+- [#296](https://github.com/nf-core/epitopeprediction/pull/296) Major rework of Fasta output: new header structure, full wildtype sequences, mutated peptides trimmed around mutation site in a flanking region of defined size and support for overlapping mutations.
+- [#310](https://github.com/nf-core/epitopeprediction/pull/310) Drop conda support temporarily until conda lock file support is implemented
+
 ## 3.0.0 - Wanne - 2025-05-09
 
 ### `Added`
 
 - [#275](https://github.com/nf-core/epitopeprediction/pull/275) - Added bcftools/stats to add MultiQC plots for variant input
-
-### `Added`
-
 - [#279](https://github.com/nf-core/epitopeprediction/pull/279) - Add `SUMMARIZE_RESULTS` module and MultiQC plots. BREAKING output structure change from`<outdir>/predictions/<meta.id>/<meta.id>.tsv` to `<outdir>/predictions/<meta.id>.tsv`
 - [#270](https://github.com/nf-core/epitopeprediction/pull/270) Added option `--wide_format_output` to provide wide format output with additional information instead of long format (default)
 

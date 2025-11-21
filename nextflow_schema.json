@@ -109,13 +109,25 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Specifies that sequences of proteins, affected by provided variants, will be written to a FASTA file.",
-                    "help_text": "Specifies that sequences of proteins that are affected by the provided genomic variants are written to a `FASTA` file. The resulting `FASTA` file will contain the wild-type and mutated protein sequences."
+                    "help_text": "Specifies that sequences of proteins that are affected by the provided genomic variants are written to a `FASTA` file. The resulting `FASTA` file will contain the wild-type and mutated protein sequences. Setting this flag will skip the MHC binding prediction entirely. One can provide arbitrary values for `alleles` and `mhc_class` in the samplesheet. Currently supports vcf files annotated with Ensembl VEP (recommended settings: `--pick --protein --uniprot --hgvs --vcf`)."
+                },
+                "fasta_peptide_flanking_region_size": {
+                    "type": "integer",
+                    "default": 25,
+                    "hidden": true,
+                    "description": "Specifies the size of the flanking regions around a mutation in a peptide in the FASTA file (if `fasta_output` is set to `true`)."
                 },
                 "wide_format_output": {
                     "type": "boolean",
                     "default": false,
                     "description": "Specifies that the output file will be in wide format.",
                     "help_text": "Transforms output file such that for each predictor and allele a column `predictor_allele_predictionMetric` is created."
+                },
+                "binder_only": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Filter out non-binders from the final results.",
+                    "help_text": "When enabled, only peptides predicted as binders by at least one predictor will be included in the final output file."
                 }
             }
         },
@@ -332,6 +344,18 @@
                     "fa_icon": "far calendar",
                     "description": "Suffix to add to the trace report filename. Default is the date and time in the format yyyy-MM-dd_HH-mm-ss.",
                     "hidden": true
+                },
+                "help": {
+                    "type": ["boolean", "string"],
+                    "description": "Display the help message."
+                },
+                "help_full": {
+                    "type": "boolean",
+                    "description": "Display the full detailed help message."
+                },
+                "show_hidden": {
+                    "type": "boolean",
+                    "description": "Display hidden parameters in the help message (only works when --help or --help_full are provided)."
                 }
             }
         }
