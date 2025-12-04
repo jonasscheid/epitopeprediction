@@ -28,7 +28,7 @@ include { MHC_BINDING_PREDICTION } from '../subworkflows/local/mhc_binding_predi
 //
 include { GUNZIP as GUNZIP_VCF        } from '../modules/nf-core/gunzip'
 include { BCFTOOLS_STATS              } from '../modules/nf-core/bcftools/stats'
-include { BCFTOOLS_NORM               } from '../modules/nf-core/bcftools/norm'
+include { BCFTOOLS_NORM               } from '../modules/local/bcftools/norm'
 include { SNPSIFT_SPLIT               } from '../modules/nf-core/snpsift/split'
 include { CAT_CAT as CAT_FASTA        } from '../modules/nf-core/cat/cat/main'
 include { MULTIQC                     } from '../modules/nf-core/multiqc'
