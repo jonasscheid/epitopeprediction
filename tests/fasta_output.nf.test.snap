@@ -7,7 +7,7 @@
                     "bcftools": 1.22
                 },
                 "BCFTOOLS_STATS": {
-                    "bcftools": 1.21
+                    "bcftools": 1.22
                 },
                 "CAT_FASTA": {
                     "pigz": "2.3.4"

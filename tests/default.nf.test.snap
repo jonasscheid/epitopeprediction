@@ -6,7 +6,7 @@
                     "bcftools": 1.22
                 },
                 "BCFTOOLS_STATS": {
-                    "bcftools": 1.21
+                    "bcftools": 1.22
                 },
                 "EPYTOPE_VARIANT_PREDICTION": {
                     "python": "3.7.12",
