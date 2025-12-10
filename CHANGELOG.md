@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### `Added`
 
-- [#315](https://github.com/nf-core/epitopeprediction/pull/315) Added local module bcftools/norm with optional reference.fasta input ([@SusiJo](https://github.com/SusiJo/))
+- [#315](https://github.com/nf-core/epitopeprediction/pull/315) Added module bcftools/norm and parameter `--genome` for reference.fasta input ([@SusiJo](https://github.com/SusiJo/))
 
 ### `Fixed`
 

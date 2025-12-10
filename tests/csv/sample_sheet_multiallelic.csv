@@ -1,0 +1,3 @@
+sample,alleles,mhc_class,filename
+sample1,https://raw.githubusercontent.com/nf-core/test-datasets/epitopeprediction/testdata/alleles/alleles.txt,I,https://raw.githubusercontent.com/nf-core/test-datasets/refs/heads/sarek/testdata/vcf/Strelka_1234N_variants.vcf.gz
+sample2,https://raw.githubusercontent.com/nf-core/test-datasets/epitopeprediction/testdata/alleles/alleles.txt,I,https://raw.githubusercontent.com/nf-core/test-datasets/refs/heads/sarek/testdata/vcf/Strelka_9876T_variants.vcf.gz

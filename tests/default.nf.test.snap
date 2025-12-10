@@ -2,9 +2,6 @@
     "-profile test": {
         "content": [
             {
-                "BCFTOOLS_NORM": {
-                    "bcftools": 1.22
-                },
                 "BCFTOOLS_STATS": {
                     "bcftools": 1.22
                 },
