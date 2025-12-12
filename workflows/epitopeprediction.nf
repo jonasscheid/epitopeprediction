@@ -79,10 +79,11 @@ workflow EPITOPEPREDICTION {
     ch_versions = ch_versions.mix(GUNZIP_VCF.out.versions)
 
     ch_variants_uncompressed = GUNZIP_VCF.out.gunzip.mix( ch_samplesheet.variant_uncompressed )
+    ch_variants_uncompressed.dump(tag: 'uncompressed variants' )
 
     if (params.genome){
 
-        def variant_reference_fasta = params.genome ? Channel.fromPath(params.genome, checkIfExists: true) : []
+        def variant_reference_fasta = params.genome ? Channel.fromPath(params.genome, checkIfExists: true).collect() : Channel.value([])
 
         // Normalize VCF files - only recommended with fasta reference
         BCFTOOLS_NORM(
@@ -91,13 +92,20 @@ workflow EPITOPEPREDICTION {
         )
         ch_versions = ch_versions.mix(BCFTOOLS_NORM.out.versions)
 
-        ch_variants_uncompressed = BCFTOOLS_NORM.out.vcf
+        ch_variants = BCFTOOLS_NORM.out.vcf
+        ch_variants.dump(tag: 'Normalized VCF' )
 
+    } else {
+        ch_variants = ch_variants_uncompressed
+        ch_variants.dump(tag: 'no genome available - variants wont be normalized - using input VCF' )
     }
+
+    
+
 
     // Generate Variant Stats for QC report
     BCFTOOLS_STATS(
-        ch_variants_uncompressed.map{ meta, vcf -> [ meta, vcf, [] ] },
+        ch_variants.map{ meta, vcf -> [ meta, vcf, [] ] },
          [[:],[]],
          [[:],[]],
          [[:],[]],

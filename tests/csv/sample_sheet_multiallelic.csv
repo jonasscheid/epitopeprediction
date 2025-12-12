@@ -1,3 +1,3 @@
 sample,alleles,mhc_class,filename
-sample1,https://raw.githubusercontent.com/nf-core/test-datasets/epitopeprediction/testdata/alleles/alleles.txt,I,https://raw.githubusercontent.com/nf-core/test-datasets/refs/heads/sarek/testdata/vcf/Strelka_1234N_variants.vcf.gz
-sample2,https://raw.githubusercontent.com/nf-core/test-datasets/epitopeprediction/testdata/alleles/alleles.txt,I,https://raw.githubusercontent.com/nf-core/test-datasets/refs/heads/sarek/testdata/vcf/Strelka_9876T_variants.vcf.gz
+sample1,https://raw.githubusercontent.com/nf-core/test-datasets/epitopeprediction/testdata/alleles/alleles.txt,I,/home-link/afijo01/repos/forks/epitopeprediction/testing/chr6_HG001_GRCh37_1_22_v4.2.1_m3_v_snps.vcf
+sample2,https://raw.githubusercontent.com/nf-core/test-datasets/epitopeprediction/testdata/alleles/alleles.txt,I,/home-link/afijo01/repos/forks/epitopeprediction/testing/chr6_HG001_GRCh37_1_22_v4.2.1_m3_v_snps_sample2.vcf
