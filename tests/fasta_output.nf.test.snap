@@ -1,7 +1,7 @@
 {
     "-profile test_fasta_output": {
         "content": [
-            28,
+            27,
             {
                 "BCFTOOLS_STATS": {
                     "bcftools": 1.22
@@ -110,9 +110,9 @@
             ]
         ],
         "meta": {
-            "nf-test": "0.9.2",
-            "nextflow": "25.04.7"
+            "nf-test": "0.9.3",
+            "nextflow": "25.10.2"
         },
-        "timestamp": "2025-12-04T07:29:47.541672029"
+        "timestamp": "2025-12-15T13:33:38.822104216"
     }
 }

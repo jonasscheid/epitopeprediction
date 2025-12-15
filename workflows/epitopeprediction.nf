@@ -79,7 +79,6 @@ workflow EPITOPEPREDICTION {
     ch_versions = ch_versions.mix(GUNZIP_VCF.out.versions)
 
     ch_variants_uncompressed = GUNZIP_VCF.out.gunzip.mix( ch_samplesheet.variant_uncompressed )
-    ch_variants_uncompressed.dump(tag: 'uncompressed variants' )
 
     if (params.genome){
 
@@ -92,20 +91,15 @@ workflow EPITOPEPREDICTION {
         )
         ch_versions = ch_versions.mix(BCFTOOLS_NORM.out.versions)
 
-        ch_variants = BCFTOOLS_NORM.out.vcf
-        ch_variants.dump(tag: 'Normalized VCF' )
+        ch_variants_uncompressed = BCFTOOLS_NORM.out.vcf
 
     } else {
-        ch_variants = ch_variants_uncompressed
-        ch_variants.dump(tag: 'no genome available - variants wont be normalized - using input VCF' )
+        ch_variants_uncompressed = ch_variants_uncompressed
     }
-
-    
-
 
     // Generate Variant Stats for QC report
     BCFTOOLS_STATS(
-        ch_variants.map{ meta, vcf -> [ meta, vcf, [] ] },
+        ch_variants_uncompressed.map{ meta, vcf -> [ meta, vcf, [] ] },
          [[:],[]],
          [[:],[]],
          [[:],[]],
@@ -126,6 +120,8 @@ workflow EPITOPEPREDICTION {
             peptide :  meta_data.input_type == 'peptide'
             protein :  meta_data.input_type == 'protein'
         }
+
+    //ch_samples_uncompressed.dump(tag:'ch_samples_uncompressed')
 
     /*
     ========================================================================================
