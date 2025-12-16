@@ -37,7 +37,7 @@ An [example samplesheet](../assets/samplesheet.csv) has been provided with the p
 > [!IMPORTANT]
 > Please note that genomic variants have to be annotated. Currently, we support variants that have been annotated using [SnpEff](http://pcingola.> github.io/SnpEff/) and [VEP](https://www.ensembl.org/info/docs/tools/vep/index.html).
 
-For genomic variants, reference information from `Ensembl BioMart` is used. The default database version is the most recent `GRCh37` version. If you want to do the predictions based on `GRCh38` as the reference genome, please specify `--genome_reference grch38` in your pipeline call. You can also specify valid `Ensembl BioMart` archive version urls as `--genome_reference` value, e.g. [the archive version of December 2021](http://dec2021.archive.ensembl.org/).
+For genomic variants, reference information from `Ensembl BioMart` is used. The default database version is the most recent `GRCh38` version. If you want to do the predictions based on `GRCh37` as the reference genome, please specify `--genome_reference grch37` in your pipeline call. You can also specify valid `Ensembl BioMart` archive version urls as `--genome_reference` value, e.g. [the archive version of December 2021](http://dec2021.archive.ensembl.org/).
 
 > [!IMPORTANT]
 > Please note that old archive versions are regularly retired, therefore it might be possible that a used version is not available anymore at a later point.
