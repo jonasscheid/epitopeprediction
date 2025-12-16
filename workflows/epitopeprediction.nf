@@ -27,6 +27,7 @@ include { MHC_BINDING_PREDICTION } from '../subworkflows/local/mhc_binding_predi
 // MODULE: Installed directly from nf-core/modules
 //
 include { GUNZIP as GUNZIP_VCF        } from '../modules/nf-core/gunzip'
+include { GUNZIP as GUNZIP_FASTA      } from '../modules/nf-core/gunzip'
 include { BCFTOOLS_STATS              } from '../modules/nf-core/bcftools/stats'
 include { BCFTOOLS_NORM               } from '../modules/nf-core/bcftools/norm'
 include { SNPSIFT_SPLIT               } from '../modules/nf-core/snpsift/split'
@@ -80,21 +81,26 @@ workflow EPITOPEPREDICTION {
 
     ch_variants_uncompressed = GUNZIP_VCF.out.gunzip.mix( ch_samplesheet.variant_uncompressed )
 
-    if (params.genome){
-
-        def variant_reference_fasta = params.genome ? Channel.fromPath(params.genome, checkIfExists: true).collect() : Channel.value([])
+    ch_fasta = Channel.of([])
+    if (params.genome) {
+        // Uncompress FASTA if needed
+        if (params.genome.endsWith('.gz')) {
+            GUNZIP_FASTA ([ [:], file(params.genome, checkIfExists: true) ])
+            ch_fasta    =  GUNZIP_FASTA.out.gunzip
+            ch_versions = ch_versions.mix(GUNZIP_FASTA.out.versions)
+        } else {
+            ch_fasta = Channel.value(file(params.genome, checkIfExists: true))
+            ch_fasta = ch_fasta.map{fasta -> [[:], fasta]}
+        }
 
         // Normalize VCF files - only recommended with fasta reference
         BCFTOOLS_NORM(
             ch_variants_uncompressed.map{ meta, vcf -> [ meta, vcf, [] ] },
-            variant_reference_fasta.map{ fasta -> [[:], fasta] }
+            ch_fasta
         )
         ch_versions = ch_versions.mix(BCFTOOLS_NORM.out.versions)
-
         ch_variants_uncompressed = BCFTOOLS_NORM.out.vcf
 
-    } else {
-        ch_variants_uncompressed = ch_variants_uncompressed
     }
 
     // Generate Variant Stats for QC report
