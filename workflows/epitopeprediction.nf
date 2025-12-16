@@ -127,8 +127,6 @@ workflow EPITOPEPREDICTION {
             protein :  meta_data.input_type == 'protein'
         }
 
-    //ch_samples_uncompressed.dump(tag:'ch_samples_uncompressed')
-
     /*
     ========================================================================================
         GENERATE MUTATED PEPTIDES FROM VCF
