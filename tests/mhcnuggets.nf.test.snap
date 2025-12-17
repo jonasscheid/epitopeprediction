@@ -4,7 +4,7 @@
             237,
             {
                 "BCFTOOLS_STATS": {
-                    "bcftools": 1.21
+                    "bcftools": 1.22
                 },
                 "EPYTOPE_VARIANT_PREDICTION": {
                     "python": "3.7.12",
@@ -197,8 +197,8 @@
         ],
         "meta": {
             "nf-test": "0.9.3",
-            "nextflow": "25.04.8"
+            "nextflow": "25.10.2"
         },
-        "timestamp": "2025-10-20T07:01:23.243045949"
+        "timestamp": "2025-12-15T14:40:18.280389202"
     }
 }

@@ -3,6 +3,22 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v3.2.0dev
+
+### `Added`
+
+- [#315](https://github.com/nf-core/epitopeprediction/pull/315) Added module bcftools/norm and parameter `--genome` for reference.fasta input ([@SusiJo](https://github.com/SusiJo/))
+
+### `Fixed`
+
+### `Dependencies`
+
+| Dependency | Old version | New version |
+| ---------- | ----------- | ----------- |
+| `bcftools` | 1.21        | 1.22        |
+
+### `Changed`
+
 ## 3.1.0 - Lustnau - 2025-10-22
 
 ### `Added`
