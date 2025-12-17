@@ -49,7 +49,7 @@
             "properties": {
                 "genome": {
                     "type": "string",
-                    "description": "Path to genome, that is the variant reference fasta.",
+                    "description": "Path to genome, that is the variant reference fasta. Can be compressed (.gz).",
                     "format": "file-path",
                     "fa_icon": "fas fa-book",
                     "help_text": "Path to variant reference fasta file. Chromosome names (i.e. chr1, Chr1, chrom1, 1, ...) must match those used in the input VCF files. Check the input vcf files for the correct formant and reference fasta version."

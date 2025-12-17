@@ -43,7 +43,7 @@ For genomic variants, reference information from `Ensembl BioMart` is used. The 
 > Please note that old archive versions are regularly retired, therefore it might be possible that a used version is not available anymore at a later point.
 
 > [!IMPORTANT]
-> Please note that it is possible to input non-normalized variant files that can contain multiallelic sites. To ensure that the variant files are normalized reliably with `bcftools norm` please input a reference.fasta file (via `--genome`) with chromosome names matching with your variant files.
+> Please note that it is possible to input non-normalized variant files that can contain multiallelic sites. To ensure that the variant files are normalized reliably with `bcftools norm` please input a reference.fasta(.gz) file (via `--genome`) with chromosome names matching with your variant files.
 
 ### Full samplesheet
 

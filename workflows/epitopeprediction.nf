@@ -81,6 +81,7 @@ workflow EPITOPEPREDICTION {
 
     ch_variants_uncompressed = GUNZIP_VCF.out.gunzip.mix( ch_samplesheet.variant_uncompressed )
 
+    // Normalize VCF files - only recommended with fasta reference
     ch_fasta = Channel.of([])
     if (params.genome) {
         // Uncompress FASTA if needed
@@ -92,8 +93,6 @@ workflow EPITOPEPREDICTION {
             ch_fasta = Channel.value(file(params.genome, checkIfExists: true))
             ch_fasta = ch_fasta.map{fasta -> [[:], fasta]}
         }
-
-        // Normalize VCF files - only recommended with fasta reference
         BCFTOOLS_NORM(
             ch_variants_uncompressed.map{ meta, vcf -> [ meta, vcf, [] ] },
             ch_fasta
