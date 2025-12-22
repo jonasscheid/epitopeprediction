@@ -12,6 +12,7 @@ import itertools
 import epytope.Core.Generator as generator
 import numpy as np
 import pandas as pd
+import csv
 import vcf
 from Bio import SeqUtils, SeqIO
 from Bio.Data import IUPACData
@@ -49,6 +50,7 @@ def parse_args():
     )
     parser.add_argument("-i", "--input", help="SnpEff or VEP annotated variants in VCF format", type=str, required=True)
     parser.add_argument("-p", "--prefix", help="Prefix of output files", type=str, required=True)
+    parser.add_argument("-b", "--biomart_dump", help="Path to local Biomart dump for offline usage", type=str, default=None)
     parser.add_argument("--fasta_output", help="Create FASTA file with protein sequences", default=False, action="store_true")
     parser.add_argument("--flanking_region_size", help="Size of flanking region around mutated peptides in FASTA output", type=int, default=25)
     parser.add_argument("--min_length", help="Minimum peptide length of mutated peptides", type=int, default=8)
@@ -901,6 +903,43 @@ def generate_fasta_output(output_filename: str, mutated_proteins: list, mutated_
                 logger.error(f"Error writing FASTA entry for transcript {transcript}: {e}")
     logger.info(f"FASTA file successfully generated: {output_filename}")
 
+
+def get_protein_ids_from_transcripts_offline(transcripts, data_path):
+    """
+    Get protein IDs from transcripts using a local CSV/TSV file.
+    Access biomart through querying (latest version of biomart)
+    and dump to table.tsv
+
+    wget -O transcript_protein_table.tsv 'http://www.ensembl.org/biomart/martservice?query=<?xml version="1.0" encoding="UTF-8"?>
+    <!DOCTYPE Query>
+    <Query  virtualSchemaName = "default" formatter = "TSV" header = "0" uniqueRows = "0" count = "" datasetConfigVersion = "0.6" >
+
+            <Dataset name = "hsapiens_gene_ensembl" interface = "default" >
+                    <Attribute name = "ensembl_peptide_id" />
+                    <Attribute name = "refseq_peptide" />
+                    <Attribute name = "uniprotswissprot" />
+                    <Attribute name = "ensembl_transcript_id" />
+            </Dataset>
+    </Query>'
+
+
+    Args:
+        transcripts: List of transcript IDs.
+        data_path: Path to the local CSV file.
+    Returns:
+        DataFrame with protein IDs.
+    """
+
+    sniffer = csv.Sniffer()
+    data = open(data_path, 'r').read(4096)
+    delimiter = sniffer.sniff(data).delimiter
+    df = pd.read_csv(data_path, sep=delimiter, header=None, names=["Protein stable ID","RefSeq peptide ID","UniProtKB/Swiss-Prot ID", "Transcript stable ID version"])
+    result = df.loc[df["Transcript stable ID version"].isin(transcripts),["Protein stable ID","RefSeq peptide ID","UniProtKB/Swiss-Prot ID", "Transcript stable ID version"]]
+    result.columns = ["ensembl_id", "refseq_id",
+                        "uniprot_id", "transcript_id"]
+    return result
+
+
 def __main__():
     args = parse_args()
     logger.info("Running variant prediction version: " + str(VERSION))
@@ -922,8 +961,13 @@ def __main__():
     # in previous version, these were the defaults "GRCh37": "http://feb2014.archive.ensembl.org" (broken)
     # "GRCh38": "http://apr2018.archive.ensembl.org" (different dataset table scheme, could potentially be fixed on BiomartAdapter level if needed )
     martsadapter = MartsAdapter(biomart=args.genome_reference)
-    # Create a mapping of transcript IDs to ensembl, refseq, and uniprot IDs
-    transcriptProteinTable = martsadapter.get_protein_ids_from_transcripts(transcripts, type=EIdentifierTypes.ENSEMBL)
+
+    if args.biomart_dump:
+        logger.info(f"Using offline biomart dump. Loading transcript to protein mapping from {args.biomart_dump}")
+        transcriptProteinTable = get_protein_ids_from_transcripts_offline(transcripts, args.biomart_dump)
+    else:
+        # Create a mapping of transcript IDs to ensembl, refseq, and uniprot IDs
+        transcriptProteinTable = martsadapter.get_protein_ids_from_transcripts(transcripts, type=EIdentifierTypes.ENSEMBL)
 
     # Generate mutated peptides from variants
     mutated_peptides_df, mutated_proteins = generate_peptides_from_variants( variant_list, martsadapter, variants_metadata, args.min_length, args.max_length + 1)

@@ -74,6 +74,13 @@
             "description": "Options for the peptide prediction step.",
             "fa_icon": "far fa-chart-bar",
             "properties": {
+                "biomart_dump_path": {
+                    "type": "string",
+                    "format": "file-path",
+                    "exists": true,
+                    "description": "Specifies the path to a local Biomart dump (CSV/TSV) for offline usage of the pipeline.",
+                    "help_text": "If you are running the pipeline in an environment without internet access, you can provide a local dump of the Ensembl Biomart here. The dump file can be created by querying the Ensembl Biomart for the relevant genome version (e.g. `grch37` or `grch38`) and selecting the attributes Protein stable ID (`ensembl_peptide_id`), RefSeq peptide ID (`refseq_peptide`), UniProtKB/Swiss-Prot ID (`uniprotswissprot`), Transcript stable ID (`ensembl_transcript_id`)."
+                },
                 "peptide_col_name": {
                     "type": "string",
                     "default": "sequence",

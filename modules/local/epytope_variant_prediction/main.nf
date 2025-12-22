@@ -8,6 +8,7 @@ process EPYTOPE_VARIANT_PREDICTION {
 
     input:
     tuple val(meta), path(vcf)
+    path(biomart_dump)
 
     output:
     tuple val(meta), path("*.tsv")  , emit: tsv
@@ -20,6 +21,7 @@ process EPYTOPE_VARIANT_PREDICTION {
     script:
     def args = task.ext.args
     def prefix = task.ext.prefix ?: "${meta.id}"
+    def biomart = biomart_dump ? "--biomart_dump ${biomart_dump}" : ""
     def min_length = (meta.mhc_class == "I") ? params.min_peptide_length_classI : params.min_peptide_length_classII
     def max_length = (meta.mhc_class == "I") ? params.max_peptide_length_classI : params.max_peptide_length_classII
     def flanking_region_size = params.fasta_peptide_flanking_region_size
@@ -28,6 +30,7 @@ process EPYTOPE_VARIANT_PREDICTION {
     epaa.py \
         -i ${vcf} \
         -p ${prefix} \
+        ${biomart} \
         --max_length ${max_length} \
         --min_length ${min_length} \
         --flanking_region_size ${flanking_region_size} \
