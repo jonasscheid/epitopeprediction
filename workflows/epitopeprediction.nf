@@ -54,6 +54,9 @@ workflow EPITOPEPREDICTION {
     // Initialise needed channels
     ch_versions      = Channel.empty()
     ch_multiqc_files = Channel.empty()
+    ch_biomart_dump  = params.biomart_dump_path ?
+                            Channel.value(file(params.biomart_dump_path, checkIfExists: true)) :
+                            Channel.value([])
 
     // Load supported alleles file
     supported_alleles_json = file("$projectDir/assets/supported_alleles.json", checkIfExists: true)
@@ -147,7 +150,7 @@ workflow EPITOPEPREDICTION {
     }
 
     // Generate mutated peptides from VCF and filter out empty files
-    EPYTOPE_VARIANT_PREDICTION( ch_split_variants.transpose() )
+    EPYTOPE_VARIANT_PREDICTION( ch_split_variants.transpose(), ch_biomart_dump )
         .tsv
         .filter { meta, file -> file.size() > 0 }
         .set { ch_peptides_from_variants }
