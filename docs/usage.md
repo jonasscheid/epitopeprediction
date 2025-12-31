@@ -42,6 +42,29 @@ For genomic variants, reference information from `Ensembl BioMart` is used. The 
 > [!IMPORTANT]
 > Please note that old archive versions are regularly retired, therefore it might be possible that a used version is not available anymore at a later point.
 
+> [!IMPORTANT]
+> Please note that it is possible to input non-normalized variant files that can contain multiallelic sites. To ensure that the variant files are normalized reliably with `bcftools norm` please input a reference.fasta(.gz) file (via `--genome`) with chromosome names matching with your variant files.
+
+#### Biomart offline usage
+
+If you are running the pipeline in an environment without internet access, you can provide a local dump (CSV/TSV) of the Ensembl Biomart via the parameter `--biomart_dump_path`. The dump file can be created by querying the [Ensembl Biomart](https://www.ensembl.org/biomart/martview/) for the relevant database and dataset (e.g. `grch37` or `grch38`) and selecting the attributes Protein stable ID (`ensembl_peptide_id`), RefSeq peptide ID (`refseq_peptide`), UniProtKB/Swiss-Prot ID (`uniprotswissprot`), Transcript stable ID (`ensembl_transcript_id`). You can select other genome versions as described above. A list of currently available archives can be found [here](https://www.ensembl.org/info/website/archives/index.html?redirect=no).
+
+The block below shows an example for a query of `GRCh38` that saves the results to a TSV file. To use another version please adapt the prefix of the URL below, i.e. (`http://grch37.ensembl.org/biomart/martservice?`). The resulting TSV file can be used as input to `--biomart_dump_path`.
+
+```bash
+wget -O biomart_dump_transcript_protein_table.tsv 'http://www.ensembl.org/biomart/martservice?query=<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Query>
+<Query  virtualSchemaName = "default" formatter = "TSV" header = "0" uniqueRows = "0" count = "" datasetConfigVersion = "0.6" >
+
+	<Dataset name = "hsapiens_gene_ensembl" interface = "default" >
+		<Attribute name = "ensembl_peptide_id" />
+	        <Attribute name = "refseq_peptide" />
+		<Attribute name = "uniprotswissprot" />
+	  	<Attribute name = "ensembl_transcript_id" />
+	</Dataset>
+</Query>'
+```
+
 ### Full samplesheet
 
 The `sample` identifiers are used to determine which sample belongs to the input file. Below is an example for the same sample with different input files that can be used:

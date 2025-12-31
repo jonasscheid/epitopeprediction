@@ -27,7 +27,9 @@ include { MHC_BINDING_PREDICTION } from '../subworkflows/local/mhc_binding_predi
 // MODULE: Installed directly from nf-core/modules
 //
 include { GUNZIP as GUNZIP_VCF        } from '../modules/nf-core/gunzip'
+include { GUNZIP as GUNZIP_FASTA      } from '../modules/nf-core/gunzip'
 include { BCFTOOLS_STATS              } from '../modules/nf-core/bcftools/stats'
+include { BCFTOOLS_NORM               } from '../modules/nf-core/bcftools/norm'
 include { SNPSIFT_SPLIT               } from '../modules/nf-core/snpsift/split'
 include { CAT_CAT as CAT_FASTA        } from '../modules/nf-core/cat/cat/main'
 include { MULTIQC                     } from '../modules/nf-core/multiqc'
@@ -52,6 +54,9 @@ workflow EPITOPEPREDICTION {
     // Initialise needed channels
     ch_versions      = Channel.empty()
     ch_multiqc_files = Channel.empty()
+    ch_biomart_dump  = params.biomart_dump_path ?
+                            Channel.value(file(params.biomart_dump_path, checkIfExists: true)) :
+                            Channel.value([])
 
     // Load supported alleles file
     supported_alleles_json = file("$projectDir/assets/supported_alleles.json", checkIfExists: true)
@@ -79,10 +84,37 @@ workflow EPITOPEPREDICTION {
 
     ch_variants_uncompressed = GUNZIP_VCF.out.gunzip.mix( ch_samplesheet.variant_uncompressed )
 
+    // Normalize VCF files - only recommended with fasta reference
+    ch_fasta = Channel.of([])
+    if (params.genome) {
+        // Uncompress FASTA if needed
+        if (params.genome.endsWith('.gz')) {
+            GUNZIP_FASTA ([ [:], file(params.genome, checkIfExists: true) ])
+            ch_fasta    =  GUNZIP_FASTA.out.gunzip
+            ch_versions = ch_versions.mix(GUNZIP_FASTA.out.versions)
+        } else {
+            ch_fasta = Channel.value(file(params.genome, checkIfExists: true))
+            ch_fasta = ch_fasta.map{fasta -> [[:], fasta]}
+        }
+        BCFTOOLS_NORM(
+            ch_variants_uncompressed.map{ meta, vcf -> [ meta, vcf, [] ] },
+            ch_fasta
+        )
+        ch_versions = ch_versions.mix(BCFTOOLS_NORM.out.versions)
+        ch_variants_uncompressed = BCFTOOLS_NORM.out.vcf
+
+    }
+
     // Generate Variant Stats for QC report
     BCFTOOLS_STATS(
-        ch_variants_uncompressed
-                .map{ meta, vcf -> [ meta, vcf, [] ] }, [[:],[]], [[:],[]], [[:],[]], [[:],[]], [[:],[]])
+        ch_variants_uncompressed.map{ meta, vcf -> [ meta, vcf, [] ] },
+         [[:],[]],
+         [[:],[]],
+         [[:],[]],
+         [[:],[]],
+         [[:],[]],
+         )
+
     ch_versions = ch_versions.mix(BCFTOOLS_STATS.out.versions)
     ch_multiqc_files = ch_multiqc_files.mix(BCFTOOLS_STATS.out.stats.collect{ meta, stats -> stats })
 
@@ -118,7 +150,7 @@ workflow EPITOPEPREDICTION {
     }
 
     // Generate mutated peptides from VCF and filter out empty files
-    EPYTOPE_VARIANT_PREDICTION( ch_split_variants.transpose() )
+    EPYTOPE_VARIANT_PREDICTION( ch_split_variants.transpose(), ch_biomart_dump )
         .tsv
         .filter { meta, file -> file.size() > 0 }
         .set { ch_peptides_from_variants }
