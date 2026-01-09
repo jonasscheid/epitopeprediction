@@ -52,11 +52,11 @@ workflow EPITOPEPREDICTION {
     main:
 
     // Initialise needed channels
-    ch_versions      = Channel.empty()
-    ch_multiqc_files = Channel.empty()
+    ch_versions      = channel.empty()
+    ch_multiqc_files = channel.empty()
     ch_biomart_dump  = params.biomart_dump_path ?
-                            Channel.value(file(params.biomart_dump_path, checkIfExists: true)) :
-                            Channel.value([])
+                            channel.value(file(params.biomart_dump_path, checkIfExists: true)) :
+                            channel.value([])
 
     // Load supported alleles file
     supported_alleles_json = file("$projectDir/assets/supported_alleles.json", checkIfExists: true)
@@ -85,7 +85,7 @@ workflow EPITOPEPREDICTION {
     ch_variants_uncompressed = GUNZIP_VCF.out.gunzip.mix( ch_samplesheet.variant_uncompressed )
 
     // Normalize VCF files - only recommended with fasta reference
-    ch_fasta = Channel.of([])
+    ch_fasta = channel.of([])
     if (params.genome) {
         // Uncompress FASTA if needed
         if (params.genome.endsWith('.gz')) {
@@ -93,7 +93,7 @@ workflow EPITOPEPREDICTION {
             ch_fasta    =  GUNZIP_FASTA.out.gunzip
             ch_versions = ch_versions.mix(GUNZIP_FASTA.out.versions)
         } else {
-            ch_fasta = Channel.value(file(params.genome, checkIfExists: true))
+            ch_fasta = channel.value(file(params.genome, checkIfExists: true))
             ch_fasta = ch_fasta.map{fasta -> [[:], fasta]}
         }
         BCFTOOLS_NORM(
@@ -163,7 +163,7 @@ workflow EPITOPEPREDICTION {
                                     .groupTuple()
         CAT_FASTA( ch_fasta_from_variants )
         ch_versions = ch_versions.mix(CAT_FASTA.out.versions)
-        ch_peptides_from_variants = Channel.empty()
+        ch_peptides_from_variants = channel.empty()
     }
     /*
     ========================================================================================
@@ -208,7 +208,7 @@ workflow EPITOPEPREDICTION {
     //
     // Collate and save software versions
     //
-    def topic_versions = Channel.topic("versions")
+    def topic_versions = channel.topic("versions")
         .distinct()
         .branch { entry ->
             versions_file: entry instanceof Path
