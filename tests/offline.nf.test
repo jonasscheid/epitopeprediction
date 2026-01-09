@@ -3,9 +3,9 @@ nextflow_pipeline {
     name "Test pipeline"
     script "../main.nf"
     tag "pipeline"
-    profile "test_grch38_offline"
+    profile "test_offline"
 
-    test("-profile test_grch38_offline") {
+    test("-profile test_offline") {
 
         when {
             params {
