@@ -18,7 +18,6 @@
 include { EPITOPEPREDICTION  } from './workflows/epitopeprediction'
 include { PIPELINE_INITIALISATION } from './subworkflows/local/utils_nfcore_epitopeprediction_pipeline'
 include { PIPELINE_COMPLETION     } from './subworkflows/local/utils_nfcore_epitopeprediction_pipeline'
-include { getGenomeAttribute      } from './subworkflows/local/utils_nfcore_epitopeprediction_pipeline'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
