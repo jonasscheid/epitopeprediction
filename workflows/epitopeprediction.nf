@@ -32,7 +32,7 @@ include { BCFTOOLS_STATS              } from '../modules/nf-core/bcftools/stats'
 include { BCFTOOLS_NORM               } from '../modules/nf-core/bcftools/norm'
 include { SNPSIFT_SPLIT               } from '../modules/nf-core/snpsift/split'
 include { CAT_CAT as CAT_FASTA        } from '../modules/nf-core/cat/cat/main'
-include { MULTIQC                     } from '../modules/nf-core/multiqc'
+include { MULTIQC                     } from '../modules/nf-core/multiqc/main'
 include { paramsSummaryMap            } from 'plugin/nf-schema'
 include { paramsSummaryMultiqc        } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { softwareVersionsToYAML      } from '../subworkflows/nf-core/utils_nfcore_pipeline'
@@ -52,11 +52,11 @@ workflow EPITOPEPREDICTION {
     main:
 
     // Initialise needed channels
-    ch_versions      = Channel.empty()
-    ch_multiqc_files = Channel.empty()
+    ch_versions      = channel.empty()
+    ch_multiqc_files = channel.empty()
     ch_biomart_dump  = params.biomart_dump_path ?
-                            Channel.value(file(params.biomart_dump_path, checkIfExists: true)) :
-                            Channel.value([])
+                            channel.value(file(params.biomart_dump_path, checkIfExists: true)) :
+                            channel.value([])
 
     // Load supported alleles file
     supported_alleles_json = file("$projectDir/assets/supported_alleles.json", checkIfExists: true)
@@ -85,7 +85,7 @@ workflow EPITOPEPREDICTION {
     ch_variants_uncompressed = GUNZIP_VCF.out.gunzip.mix( ch_samplesheet.variant_uncompressed )
 
     // Normalize VCF files - only recommended with fasta reference
-    ch_fasta = Channel.of([])
+    ch_fasta = channel.of([])
     if (params.genome) {
         // Uncompress FASTA if needed
         if (params.genome.endsWith('.gz')) {
@@ -93,7 +93,7 @@ workflow EPITOPEPREDICTION {
             ch_fasta    =  GUNZIP_FASTA.out.gunzip
             ch_versions = ch_versions.mix(GUNZIP_FASTA.out.versions)
         } else {
-            ch_fasta = Channel.value(file(params.genome, checkIfExists: true))
+            ch_fasta = channel.value(file(params.genome, checkIfExists: true))
             ch_fasta = ch_fasta.map{fasta -> [[:], fasta]}
         }
         BCFTOOLS_NORM(
@@ -163,7 +163,7 @@ workflow EPITOPEPREDICTION {
                                     .groupTuple()
         CAT_FASTA( ch_fasta_from_variants )
         ch_versions = ch_versions.mix(CAT_FASTA.out.versions)
-        ch_peptides_from_variants = Channel.empty()
+        ch_peptides_from_variants = channel.empty()
     }
     /*
     ========================================================================================
@@ -208,7 +208,25 @@ workflow EPITOPEPREDICTION {
     //
     // Collate and save software versions
     //
-    softwareVersionsToYAML(ch_versions)
+    def topic_versions = channel.topic("versions")
+        .distinct()
+        .branch { entry ->
+            versions_file: entry instanceof Path
+            versions_tuple: true
+        }
+
+    def topic_versions_string = topic_versions.versions_tuple
+        .map { process, tool, version ->
+            [ process[process.lastIndexOf(':')+1..-1], "  ${tool}: ${version}" ]
+        }
+        .groupTuple(by:0)
+        .map { process, tool_versions ->
+            tool_versions.unique().sort()
+            "${process}:\n${tool_versions.join('\n')}"
+        }
+
+    softwareVersionsToYAML(ch_versions.mix(topic_versions.versions_file))
+        .mix(topic_versions_string)
         .collectFile(
             storeDir: "${params.outdir}/pipeline_info",
             name: 'nf_core_'  +  'epitopeprediction_software_'  + 'mqc_'  + 'versions.yml',
@@ -219,24 +237,24 @@ workflow EPITOPEPREDICTION {
     //
     // MODULE: MultiQC
     //
-    ch_multiqc_config        = Channel.fromPath(
+    ch_multiqc_config        = channel.fromPath(
         "$projectDir/assets/multiqc_config.yml", checkIfExists: true)
     ch_multiqc_custom_config = params.multiqc_config ?
-        Channel.fromPath(params.multiqc_config, checkIfExists: true) :
-        Channel.empty()
+        channel.fromPath(params.multiqc_config, checkIfExists: true) :
+        channel.empty()
     ch_multiqc_logo          = params.multiqc_logo ?
-        Channel.fromPath(params.multiqc_logo, checkIfExists: true) :
-        Channel.empty()
+        channel.fromPath(params.multiqc_logo, checkIfExists: true) :
+        channel.empty()
 
     summary_params      = paramsSummaryMap(
         workflow, parameters_schema: "nextflow_schema.json")
-    ch_workflow_summary = Channel.value(paramsSummaryMultiqc(summary_params))
+    ch_workflow_summary = channel.value(paramsSummaryMultiqc(summary_params))
     ch_multiqc_files = ch_multiqc_files.mix(
         ch_workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml'))
     ch_multiqc_custom_methods_description = params.multiqc_methods_description ?
         file(params.multiqc_methods_description, checkIfExists: true) :
         file("$projectDir/assets/methods_description_template.yml", checkIfExists: true)
-    ch_methods_description                = Channel.value(
+    ch_methods_description                = channel.value(
         methodsDescriptionText(ch_multiqc_custom_methods_description))
 
     ch_multiqc_files = ch_multiqc_files.mix(ch_collated_versions)

@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | Dependency | Old version | New version |
 | ---------- | ----------- | ----------- |
 | `bcftools` | 1.21        | 1.22        |
+| `nf-core`  | 3.4.1       | 3.5.1       |
 
 ### `Changed`
 

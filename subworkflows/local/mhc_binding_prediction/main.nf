@@ -29,8 +29,8 @@ workflow MHC_BINDING_PREDICTION {
         netmhc_software_meta_json
 
     main:
-        ch_versions = Channel.empty()
-        ch_binding_predictors_out = Channel.empty()
+        ch_versions = channel.empty()
+        ch_binding_predictors_out = channel.empty()
 
         validate_tools_param(tools)
 
@@ -134,7 +134,7 @@ def parse_netmhc_params(tool_name, netmhc_software_meta) {
         entry = netmhc_software_meta_map["${tool_name}_darwin"]
     }
     // If so, add the tool name and user installation path to the external tools import channel
-    ch_netmhc_exe = Channel.empty()
+    ch_netmhc_exe = channel.empty()
     ch_netmhc_exe.bind([
         tool_name,
         entry.version,
