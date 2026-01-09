@@ -105,7 +105,7 @@
             },
             "mentions": [
                 {
-                    "@id": "#d1e52359-e5be-4e8c-a0f1-8503314ade1d"
+                    "@id": "#ce238522-d12f-46f9-b8cf-20911084a8d7"
                 }
             ],
             "name": "nf-core/epitopeprediction"
@@ -188,13 +188,8 @@
             "sdPublisher": {
                 "@id": "https://nf-co.re/"
             },
-            "url": [
-                "https://github.com/nf-core/epitopeprediction",
-                "https://nf-co.re/epitopeprediction/3.1.0/"
-            ],
-            "version": [
-                "3.1.0"
-            ]
+            "url": ["https://github.com/nf-core/epitopeprediction", "https://nf-co.re/epitopeprediction/3.1.0/"],
+            "version": ["3.1.0"]
         },
         {
             "@id": "https://w3id.org/workflowhub/workflow-ro-crate#nextflow",
@@ -209,11 +204,11 @@
             "version": "!>=25.04.0"
         },
         {
-            "@id": "#d1e52359-e5be-4e8c-a0f1-8503314ade1d",
+            "@id": "#ce238522-d12f-46f9-b8cf-20911084a8d7",
             "@type": "TestSuite",
             "instance": [
                 {
-                    "@id": "#0cdd43df-690a-409b-b003-fe3130dcd332"
+                    "@id": "#cafe71b5-335c-489e-868f-a697ba31192f"
                 }
             ],
             "mainEntity": {
@@ -222,7 +217,7 @@
             "name": "Test suite for nf-core/epitopeprediction"
         },
         {
-            "@id": "#0cdd43df-690a-409b-b003-fe3130dcd332",
+            "@id": "#cafe71b5-335c-489e-868f-a697ba31192f",
             "@type": "TestInstance",
             "name": "GitHub Actions workflow for testing nf-core/epitopeprediction",
             "resource": "repos/nf-core/epitopeprediction/actions/workflows/nf-test.yml",
@@ -363,7 +358,7 @@
         {
             "@id": "https://orcid.org/0000-0002-5923-1343",
             "@type": "Person",
-            "email": "43858870+jonasscheid@users.noreply.github.com",
+            "email": "jonas.scheid@uni-tuebingen.de",
             "name": "Jonas Scheid"
         },
         {

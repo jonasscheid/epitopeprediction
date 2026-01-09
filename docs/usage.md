@@ -83,7 +83,7 @@ You can also perform predictions for MHC class `I` and `II` in the same run by s
 The typical command for running the pipeline is as follows:
 
 ```bash
-nextflow run nf-core/epitopeprediction --input ./samplesheet.csv --outdir ./results -profile docker
+nextflow run nf-core/epitopeprediction --input ./samplesheet.csv --outdir ./results  -profile docker
 ```
 
 This will launch the pipeline with the `docker` configuration profile and default options (`mhcflurry` by default). See below for more information about profiles.
