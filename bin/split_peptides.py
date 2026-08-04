@@ -32,7 +32,7 @@ def split_peptides(input_file, min_size, max_chunks):
         start = chunk_idx * chunk_size
         end = start + chunk_size
         # Some upstream processes insert dots in filename (e.g. snpsift split -> variant.chr8.tsv), which can cause downstream issues
-        outfile_name = f"{input_path.stem.replace('.','_')}_chunk_{chunk_idx}.tsv"
+        outfile_name = f"{input_path.stem.replace('.','_')}_c{chunk_idx}.tsv"
         with open(outfile_name, "w") as outfile:
             outfile.write(header)
             outfile.writelines(data_lines[start:end])

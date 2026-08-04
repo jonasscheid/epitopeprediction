@@ -34,9 +34,9 @@ workflow MHC_BINDING_PREDICTION {
 
         validate_tools_param(tools)
 
-        // Add file identifier to meta to prevent overwriting identically named files
+        // File identifier keeping output names unique, without repeating a sample id the file name already carries
         ch_peptides
-            .map { meta, file -> [meta + [file_id: meta.id + '_' + file.baseName], file] }
+            .map { meta, file -> [meta + [file_id: file.baseName.startsWith("${meta.id}_") ? file.baseName : "${meta.id}_${file.baseName}"], file] }
             .set { ch_peptides_to_predict }
 
         // Fan out one tuple per (tool, chunk) entry from the emitted JSON manifest.

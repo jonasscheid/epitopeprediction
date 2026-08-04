@@ -29,8 +29,8 @@
             },
             [
                 "mhcnuggets",
-                "mhcnuggets/sample1_sample1_length_10_chunk_0_predicted_mhcnuggets.csv",
-                "mhcnuggets/sample1_sample1_length_9_chunk_0_predicted_mhcnuggets.csv",
+                "mhcnuggets/sample1_length_10_c0_predicted_mhcnuggets.csv",
+                "mhcnuggets/sample1_length_9_c0_predicted_mhcnuggets.csv",
                 "multiqc",
                 "multiqc/multiqc_data",
                 "multiqc/multiqc_data/llms-full.txt",

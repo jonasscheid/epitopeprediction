@@ -44,11 +44,13 @@ The chunksize is controlled by `--peptides_split_minchunksize` and `--peptides_s
 
 **Tools output directory:**
 
-- `mhcflurry/[sample]_chunk_[0-9]_predicted_mhcflurry.csv`
-- `mhcnuggets/[sample]_chunk_[0-9]_predicted_mhcnuggets.csv`
-- `mhcnuggetsii/[sample]_chunk_[0-9]_predicted_mhcnuggetsii.csv`
-- `netmhcpan/[sample]_chunk_[0-9]_predicted_netmhcpan.xls`
-- `netmhciipan/[sample]_chunk_[0-9]_predicted_netmhciipan.xls`
+- `mhcflurry/[sample]_c[0-9]_predicted_mhcflurry.csv`
+- `mhcnuggets/[sample]_c[0-9]_predicted_mhcnuggets.csv`
+- `mhcnuggetsii/[sample]_c[0-9]_predicted_mhcnuggetsii.csv`
+- `netmhcpan/[sample]_c[0-9]_predicted_netmhcpan.xls`
+- `netmhciipan/[sample]_c[0-9]_predicted_netmhciipan.xls`
+
+Here `_c[0-9]` is the peptide chunk. When a sample has more alleles than a predictor accepts per call, the alleles are chunked as well and an `_a[0-9]` suffix is appended (e.g. `netmhcpan/[sample]_c0_a3_predicted_netmhcpan.xls`).
 
 These predictor-specific output files are harmonized and chunks are merged on the `sample` information of your samplesheet.
 
