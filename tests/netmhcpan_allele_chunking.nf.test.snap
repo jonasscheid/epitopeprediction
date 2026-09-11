@@ -1,0 +1,74 @@
+{
+    "-profile test_netmhcpan with 50 alleles split into chunks": {
+        "content": [
+            8,
+            {
+                "MERGE_PREDICTIONS": {
+                    "argparse": 1.1,
+                    "pandas": "2.1.0",
+                    "mhcgnomes": "1.8.6"
+                },
+                "NETMHCPAN": {
+                    "NetMHCpan": "4.2b"
+                },
+                "SPLIT_PEPTIDES": {
+                    "python": "3.14.3"
+                },
+                "SUMMARIZE_RESULTS": {
+                    "python": "3.11.5"
+                },
+                "Workflow": {
+                    "nf-core/epitopeprediction": "v3.2.0dev"
+                }
+            },
+            [
+                "multiqc",
+                "multiqc/multiqc_data",
+                "multiqc/multiqc_data/llms-full.txt",
+                "multiqc/multiqc_data/multiqc.log",
+                "multiqc/multiqc_data/multiqc.parquet",
+                "multiqc/multiqc_data/multiqc_binder_length_distribution.txt",
+                "multiqc/multiqc_data/multiqc_binder_rank_distribution.txt",
+                "multiqc/multiqc_data/multiqc_binding_affinity_distribution.txt",
+                "multiqc/multiqc_data/multiqc_citations.txt",
+                "multiqc/multiqc_data/multiqc_data.json",
+                "multiqc/multiqc_data/multiqc_peptide_binding_prediction_stats.txt",
+                "multiqc/multiqc_data/multiqc_software_versions.txt",
+                "multiqc/multiqc_data/multiqc_sources.txt",
+                "multiqc/multiqc_plots",
+                "multiqc/multiqc_plots/pdf",
+                "multiqc/multiqc_plots/pdf/binder_length_distribution.pdf",
+                "multiqc/multiqc_plots/pdf/binder_rank_distribution.pdf",
+                "multiqc/multiqc_plots/pdf/binding_affinity_distribution.pdf",
+                "multiqc/multiqc_plots/pdf/peptide_binding_prediction_stats.pdf",
+                "multiqc/multiqc_plots/png",
+                "multiqc/multiqc_plots/png/binder_length_distribution.png",
+                "multiqc/multiqc_plots/png/binder_rank_distribution.png",
+                "multiqc/multiqc_plots/png/binding_affinity_distribution.png",
+                "multiqc/multiqc_plots/png/peptide_binding_prediction_stats.png",
+                "multiqc/multiqc_plots/svg",
+                "multiqc/multiqc_plots/svg/binder_length_distribution.svg",
+                "multiqc/multiqc_plots/svg/binder_rank_distribution.svg",
+                "multiqc/multiqc_plots/svg/binding_affinity_distribution.svg",
+                "multiqc/multiqc_plots/svg/peptide_binding_prediction_stats.svg",
+                "multiqc/multiqc_report.html",
+                "pipeline_info",
+                "pipeline_info/nf_core_epitopeprediction_software_mqc_versions.yml",
+                "predictions",
+                "predictions/sample_chunked.tsv"
+            ],
+            [
+                "multiqc_binder_length_distribution.txt:md5,a9d960aadd1a89eadd61948e66396655",
+                "multiqc_binder_rank_distribution.txt:md5,162b91889950db227a64f71c1d1b562a",
+                "multiqc_binding_affinity_distribution.txt:md5,6514b85b96f84f253bbff2a80e54cfbe",
+                "multiqc_citations.txt:md5,4c806e63a283ec1b7e78cdae3a923d4f",
+                "multiqc_peptide_binding_prediction_stats.txt:md5,776c86c6133fcf81a0fb299f7cc62d0b"
+            ]
+        ],
+        "timestamp": "2026-09-11T13:18:26.570718884",
+        "meta": {
+            "nf-test": "0.9.5",
+            "nextflow": "25.10.4"
+        }
+    }
+}

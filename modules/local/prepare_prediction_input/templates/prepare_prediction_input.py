@@ -33,12 +33,13 @@ class MaxLength(Enum):
     NETMHCIIPAN = 50
 
 class MaxNumberOfAlleles(Enum):
-    # Max alleles per tool invocation (0 = no limit); NetMHC*pan reject -a lists over 1024 chars.
+    # Alleles per chunk / tool invocation (0 = no limit). NetMHC*pan reject -a lists over 1024 chars;
+    # over the shipped supported_alleles.json these caps give worst-case -a strings of ~630 / ~800 chars.
     MHCFLURRY = 0
     MHCNUGGETS = 0
     MHCNUGGETSII = 0
-    NETMHCPAN = 50
-    NETMHCIIPAN = 40
+    NETMHCPAN = 45
+    NETMHCIIPAN = 35
 
 # Per-tool peptide length window, output-file extension, MHC class and CLI allele separator.
 TOOL_CONFIGS = {
@@ -166,8 +167,7 @@ class Utils:
         for tool, alleles in tools_alleles.items():
             if not alleles:
                 continue
-            cap = MaxNumberOfAlleles[tool.upper()].value
-            chunks = Utils.chunk_alleles(alleles, cap - 5 if cap else 0)
+            chunks = Utils.chunk_alleles(alleles, MaxNumberOfAlleles[tool.upper()].value)
             if len(chunks) > 1:
                 logging.info(f"Split {tool} alleles into {len(chunks)} chunks")
             sep = TOOL_CONFIGS[tool]["sep"]

@@ -44,10 +44,12 @@ workflow MHC_BINDING_PREDICTION {
             .prepared
             .flatMap { meta, tool_chunks, files ->
                 def files_by_name = files.collectEntries { f -> [(f.name): f] }
-                parseJson(tool_chunks).collect { entry ->
+                def entries = parseJson(tool_chunks)
+                entries.collect { entry ->
                     [meta + [tool: entry.tool,
                              alleles_supported: entry.alleles,
                              source_file_id: meta.file_id,
+                             n_prediction_files: entries.size(), // lets MERGE_PREDICTIONS start once this source file's chunks are in
                              file_id: entry.chunk_id ? "${meta.file_id}_${entry.chunk_id}" : meta.file_id],
                      entry.alleles_input,
                      files_by_name[entry.filename]]
@@ -92,16 +94,19 @@ workflow MHC_BINDING_PREDICTION {
         }
 
     // Regroup predictor outputs by the original (pre-chunk) peptide file, one MERGE task per source.
+    // groupKey carries the expected number of files so groupTuple emits as soon as a source file is complete
+    // instead of waiting for every prediction task in the run.
     ch_binding_predictors_out
         .map { meta, file ->
-            def regroup_meta = meta.findAll { k, _v -> !(k in ['alleles_supported', 'tool', 'source_file_id']) } + [
+            def regroup_meta = meta.findAll { k, _v -> !(k in ['alleles_supported', 'tool', 'source_file_id', 'n_prediction_files']) } + [
                 file_id: meta.source_file_id ?: meta.file_id,
             ]
-            [regroup_meta, file, meta.alleles_supported]
+            [groupKey(regroup_meta, meta.n_prediction_files), file]
         }
-        .groupTuple()                   // → [meta, [files], [alleles_per_file]]
-        .join( ch_peptides_to_predict ) // → [meta, [files], [alleles_per_file], source_file]
-        .set { ch_binding_predictors_out_meta}
+        .groupTuple()                                    // → [groupKey, [files]]
+        .map { key, files -> [key.getGroupTarget(), files] }
+        .join( ch_peptides_to_predict )                  // → [meta, [files], source_file]
+        .set { ch_binding_predictors_out_meta }
 
     // Merge predictions from different predictors
     MERGE_PREDICTIONS( ch_binding_predictors_out_meta )

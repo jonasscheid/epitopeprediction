@@ -43,7 +43,6 @@ class Arguments:
         self.input = "$prediction_files".split(" ")
         self.source_file = "$source_file"
         self.prefix = "$task.ext.prefix" if "$task.ext.prefix" != "null" else "$meta.id"
-        self.alleles_per_file = "${alleles_per_file.join('|||')}".split("|||")
         self.use_ba_rank = False  # Default value, will be overridden if --use_ba_rank is passed
         self.parse_ext_args("$task.ext.args")
 
@@ -129,9 +128,8 @@ class Utils:
 #           Parse Predictions
 # -------------------------------------------
 class PredictionResult:
-    def __init__(self, file_path, alleles, peptide_col_name, use_ba_rank=False):
+    def __init__(self, file_path, peptide_col_name, use_ba_rank=False):
         self.file_path = file_path
-        self.alleles = alleles
         self.peptide_col_name = peptide_col_name
         self.use_ba_rank = use_ba_rank
         self.predictor = None
@@ -146,21 +144,20 @@ class PredictionResult:
         |    ...   |   ...   |  ...  |  ...  |  ...   |     ...   |
         +----------+---------+-------+-------+--------+-----------+
         """
-        if 'mhcflurry' in self.file_path:
-            self.predictor = 'mhcflurry'
-            return self._format_mhcflurry_prediction()
-        elif 'mhcnuggets' in self.file_path:
-            self.predictor = 'mhcnuggetsii' if 'mhcnuggetsii' in self.file_path else 'mhcnuggets'
-            return self._format_mhcnuggets_prediction()
-        elif 'netmhcpan' in self.file_path:
-            self.predictor = 'netmhcpan'
-            return self._format_netmhcpan_prediction()
-        elif 'netmhciipan' in self.file_path:
-            self.predictor = 'netmhciipan'
-            return self._format_netmhciipan_prediction()
-        else:
+        # Predictor modules name their output <file_id>_predicted_<tool>.<ext>; match on that suffix
+        # rather than on substrings of the whole path, which a sample id could contain.
+        self.predictor = Path(self.file_path).stem.rsplit('_predicted_', 1)[-1]
+        formatters = {
+            'mhcflurry': self._format_mhcflurry_prediction,
+            'mhcnuggets': self._format_mhcnuggets_prediction,
+            'mhcnuggetsii': self._format_mhcnuggets_prediction,
+            'netmhcpan': self._format_netmhcpan_prediction,
+            'netmhciipan': self._format_netmhciipan_prediction,
+        }
+        if self.predictor not in formatters:
             logging.error(f'Unsupported predictor type in file: {self.file_path}.')
             sys.exit(1)
+        return formatters[self.predictor]()
 
     def _format_mhcflurry_prediction(self) -> pd.DataFrame:
         """
@@ -235,9 +232,8 @@ def main():
 
     # Iterate over each file predicted by multiple predictors, harmonize and merge output
     output_df = []
-    for file, file_alleles_str in zip(args.input, args.alleles_per_file):
-        alleles = file_alleles_str.split(';')
-        result = PredictionResult(file, alleles, args.peptide_col_name, args.use_ba_rank)
+    for file in args.input:
+        result = PredictionResult(file, args.peptide_col_name, args.use_ba_rank)
 
         logging.info(f"Writing {len(result.prediction_df)} {result.predictor} predictions to file..")
         output_df.append(result.prediction_df)

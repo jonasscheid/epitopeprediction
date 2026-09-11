@@ -1,0 +1,38 @@
+nextflow_pipeline {
+
+    name "Test pipeline with NetMHCpan and allele chunking"
+    script "../main.nf"
+    tag "netmhcpan"
+    profile "test_netmhcpan"
+
+    test("-profile test_netmhcpan with 50 alleles split into chunks") {
+
+        when {
+            params {
+                // 50 class I alleles exceed the 45-allele NetMHCpan chunk cap, so PREPARE_PREDICTION_INPUT
+                // must emit two chunks (_a0, _a1) that MERGE_PREDICTIONS regroups into one prediction file.
+                input  = "$projectDir/tests/samplesheets/samplesheet_allele_chunking.csv"
+                outdir = "$outputDir"
+            }
+        }
+
+        then {
+            def all_names = getAllFilesFromDir(params.outdir, relative: true, includeDir: true, ignore: ['pipeline_info/*.{html,json,txt}'])
+            // netmhcpan/ also holds the unpacked software tarball, so only assert on the chunked xls outputs
+            def netmhcpan_files = all_names.findAll { it.endsWith('_predicted_netmhcpan.xls') }
+            def stable_name = all_names.findAll { !it.startsWith('netmhcpan') }
+            def stable_path = getAllFilesFromDir(params.outdir, ignoreFile: 'tests/.nftignore').findAll { !it.toString().contains('/netmhcpan/') }
+            assertAll(
+                { assert workflow.success },
+                { assert netmhcpan_files.any { it.endsWith('_a0_predicted_netmhcpan.xls') } },
+                { assert netmhcpan_files.any { it.endsWith('_a1_predicted_netmhcpan.xls') } },
+                { assert snapshot(
+                    workflow.trace.succeeded().size(),
+                    removeNextflowVersion("$outputDir/pipeline_info/nf_core_epitopeprediction_software_mqc_versions.yml"),
+                    stable_name,
+                    stable_path
+                ).match() }
+            )
+        }
+    }
+}

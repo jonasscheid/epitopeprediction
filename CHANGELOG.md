@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [#341](https://github.com/nf-core/epitopeprediction/pull/341) Migrated `assets/supported_alleles.json` from per-tool canonical lists to per-tool `{canonical: native}` dicts; `prepare_prediction_input.format_alleles_for_tool` is now a pure dict lookup, dropping all per-species regex transforms. Recovers +766 NetMHCpan and +8 NetMHCIIpan alleles whose binary-native spelling didn't round-trip through the previous mhcgnomes-only filter ([@jonasscheid](https://github.com/jonasscheid/))
 - [#341](https://github.com/nf-core/epitopeprediction/pull/341) Fixed `KeyError: nan` in `summarize_results.py` when all rows in a `(peptide, allele)` group had `NaN` rank (surfaced in pan-mode with NetMHCIIpan) ([@jonasscheid](https://github.com/jonasscheid/))
 - [#341](https://github.com/nf-core/epitopeprediction/pull/341) Build prediction file names from the sample id plus its split coordinates (`<sample>[_<split>]_c<N>[_a<N>]`) instead of accreting the upstream file name, which prepended the sample id up to three times and could exceed the 255-byte file name limit that NetMHCpan/NetMHCIIpan reject ([@jonasscheid](https://github.com/jonasscheid/))
+- [#341](https://github.com/nf-core/epitopeprediction/pull/341) Fixed NetMHCpan/NetMHCIIpan aborting with `buffer overflow detected` / `stack smashing detected`: the binaries copy the software directory path (NMHOME) and TMPDIR into fixed-size buffers (~95 chars for NetMHCpan-4.2b, ~200 for NetMHCIIpan-4.3), which deep Nextflow work directories exceed. The modules now invoke the wrapper through a short `/tmp` symlink with TMPDIR pointed there, replacing the test-profile-only `scratch` workaround from [#368](https://github.com/nf-core/epitopeprediction/pull/368) ([@jonasscheid](https://github.com/jonasscheid/))
+- [#341](https://github.com/nf-core/epitopeprediction/pull/341) `merge_predictions.py` detects the predictor from the `_predicted_<tool>` file suffix instead of substrings of the whole path, which a sample id could contain ([@jonasscheid](https://github.com/jonasscheid/))
 - [#348](https://github.com/nf-core/epitopeprediction/pull/348) Bumped Python container from 3.11 to 3.14 in SPLIT_PEPTIDES and VARIANT_SPLIT ([@jonasscheid](https://github.com/jonasscheid/))
 
 ### `Dependencies`
@@ -45,6 +47,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### `Changed`
 
+- [#341](https://github.com/nf-core/epitopeprediction/pull/341) `MERGE_PREDICTIONS` groups predictor outputs with a sized `groupKey` so merging starts as soon as one source file's chunks are complete, and no longer receives the unused per-file allele lists ([@jonasscheid](https://github.com/jonasscheid/))
+- [#341](https://github.com/nf-core/epitopeprediction/pull/341) Added `tests/netmhcpan_allele_chunking.nf.test`, a 50-allele NetMHCpan run that exercises allele chunking end to end ([@jonasscheid](https://github.com/jonasscheid/))
 - [#316](https://github.com/nf-core/epitopeprediction/pull/316) Added parameter `--biomart_dump` in `epaa.py` ([@SusiJo](https://github.com/SusiJo/)).
 - [#320](https://github.com/nf-core/epitopeprediction/pull/320) Set default genome reference to GRCh38 ([@jonasscheid](https://github.com/jonasscheid/)).
 - Remove `--ensembl_dataset` parameter; Ensembl dataset is now auto-detected from `--genome_reference` (supports human and mouse genomes, or direct Ensembl URL).
