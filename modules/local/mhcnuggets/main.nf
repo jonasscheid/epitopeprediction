@@ -20,9 +20,10 @@ process MHCNUGGETS {
 
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
+    def tool   = meta.mhc_class == "II" ? "mhcnuggetsii" : "mhcnuggets"
 
     """
-    touch ${prefix}_predicted_mhcnuggets.tsv
+    touch ${prefix}_predicted_${tool}.csv
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

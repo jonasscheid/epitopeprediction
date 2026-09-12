@@ -141,7 +141,7 @@ workflow EPITOPEPREDICTION {
         VARIANT_SPLIT( ch_samples_uncompressed.variant )
             .splitted
             .transpose()
-            .map { meta, vcf -> [meta + [split_id: vcf.baseName.tokenize('_').last()], vcf] } // split_vcf_by_variants.py names groups <stem>_v<n>
+            .map { meta, vcf -> [meta + [split_id: splitId(meta, vcf)], vcf] }
             .set { ch_split_variants }
         ch_versions = ch_versions.mix( VARIANT_SPLIT.out.versions )
     }
@@ -150,7 +150,7 @@ workflow EPITOPEPREDICTION {
             .map {meta, vcf -> [meta + [split: true], vcf]} ) // need to add split: true to meta to trigger splitting (nf-core module)
             .out_vcfs
             .transpose()
-            .map { meta, vcf -> [meta + [split_id: vcf.baseName.tokenize('.').last()], vcf] } // SnpSift appends .<chromosome> to the input basename
+            .map { meta, vcf -> [meta + [split_id: splitId(meta, vcf)], vcf] }
             .set { ch_split_variants }
     }
 
@@ -178,8 +178,7 @@ workflow EPITOPEPREDICTION {
     ch_versions = ch_versions.mix( FASTA2PEPTIDES.out.versions )
 
     ch_to_predict = ch_samples_uncompressed.peptide
-                        .mix(FASTA2PEPTIDES.out.tsv.transpose()
-                                .map { meta, tsv -> [meta + [split_id: tsv.baseName - "${meta.id}_"], tsv] }) // fasta2peptides.py writes one file per peptide length: <id>_length_<k>
+                        .mix(FASTA2PEPTIDES.out.tsv.transpose().map { meta, tsv -> [meta + [split_id: splitId(meta, tsv)], tsv] })
                         .mix(ch_peptides_from_variants)
 
     // Split tsv if size exceeds params.peptides_split_minchunksize
@@ -275,3 +274,25 @@ workflow EPITOPEPREDICTION {
     THE END
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    FUNCTIONS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+
+// Coordinate that distinguishes the splits of one sample, derived from how each splitter names its outputs:
+//   split_vcf_by_variants.py  <stem>_v<n>.vcf        -> v<n>
+//   SnpSift split             <stem>.<chromosome>.vcf -> <chromosome>
+//   fasta2peptides.py         <id>_length_<k>.tsv     -> length_<k>
+// Keeps downstream file names unique without repeating the sample id.
+def splitId(meta, file) {
+    def stem = file.baseName
+    if (stem ==~ /.*_v\d+/) {
+        return stem.tokenize('_').last()
+    }
+    if (stem.startsWith("${meta.id}_length_")) {
+        return stem - "${meta.id}_"
+    }
+    return stem.tokenize('.').last()
+}

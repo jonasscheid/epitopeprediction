@@ -44,7 +44,7 @@ workflow MHC_BINDING_PREDICTION {
             .prepared
             .flatMap { meta, tool_chunks, files ->
                 def files_by_name = files.collectEntries { f -> [(f.name): f] }
-                def entries = parseJson(tool_chunks)
+                def entries = new groovy.json.JsonSlurper().parse(tool_chunks)
                 entries.collect { entry ->
                     [meta + [tool: entry.tool,
                              alleles_supported: entry.alleles,
@@ -93,24 +93,22 @@ workflow MHC_BINDING_PREDICTION {
             ch_binding_predictors_out = ch_binding_predictors_out.mix(NETMHCIIPAN.out.predicted)
         }
 
-    // Regroup predictor outputs by the original (pre-chunk) peptide file, one MERGE task per source.
-    // groupKey carries the expected number of files so groupTuple emits as soon as a source file is complete
-    // instead of waiting for every prediction task in the run.
-    ch_binding_predictors_out
-        .map { meta, file ->
-            def regroup_meta = meta.findAll { k, _v -> !(k in ['alleles_supported', 'tool', 'source_file_id', 'n_prediction_files']) } + [
-                file_id: meta.source_file_id ?: meta.file_id,
-            ]
-            [groupKey(regroup_meta, meta.n_prediction_files), file]
-        }
-        .groupTuple()                                    // → [groupKey, [files]]
-        .map { key, files -> [key.getGroupTarget(), files] }
-        .join( ch_peptides_to_predict )                  // → [meta, [files], source_file]
-        .set { ch_binding_predictors_out_meta }
+        // Regroup predictor outputs by the original (pre-chunk) peptide file, one MERGE task per source.
+        // groupKey carries the expected number of files so groupTuple emits as soon as a source file is complete
+        // instead of waiting for every prediction task in the run.
+        ch_binding_predictors_out
+            .map { meta, file ->
+                def regroup_meta = meta.subMap(meta.keySet() - ['alleles_supported', 'tool', 'source_file_id', 'n_prediction_files']) + [file_id: meta.source_file_id]
+                [groupKey(regroup_meta, meta.n_prediction_files), file]
+            }
+            .groupTuple()                                    // → [groupKey, [files]]
+            .map { key, files -> [key.getGroupTarget(), files] }
+            .join( ch_peptides_to_predict )                  // → [meta, [files], source_file]
+            .set { ch_binding_predictors_out_meta }
 
-    // Merge predictions from different predictors
-    MERGE_PREDICTIONS( ch_binding_predictors_out_meta )
-    ch_versions = ch_versions.mix(MERGE_PREDICTIONS.out.versions)
+        // Merge predictions from different predictors
+        MERGE_PREDICTIONS( ch_binding_predictors_out_meta )
+        ch_versions = ch_versions.mix(MERGE_PREDICTIONS.out.versions)
 
     emit:
     predicted = MERGE_PREDICTIONS.out.merged
@@ -161,7 +159,3 @@ def parse_netmhc_params(tool_name, netmhc_software_meta) {
     return ch_netmhc_exe
 }
 
-// Groovy function to parse JSON and return a list/map
-def parseJson(jsonPath) {
-    new groovy.json.JsonSlurper().parse(file(jsonPath, checkIfExists: true))
-}

@@ -8,7 +8,6 @@ import argparse
 import shlex
 import json
 import logging
-from enum import Enum
 
 import pandas as pd
 import mhcgnomes
@@ -19,36 +18,15 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
-class MinLength(Enum):
-    MHCFLURRY = 5
-    MHCNUGGETS = 5
-    NETMHCPAN = 8
-    NETMHCIIPAN = 9
-
-class MaxLength(Enum):
-    MHCFLURRY = 15
-    MHCNUGGETS_CLASSI = 15
-    MHCNUGGETS_CLASSII = 30
-    NETMHCPAN = 14
-    NETMHCIIPAN = 50
-
-class MaxNumberOfAlleles(Enum):
-    # Alleles per chunk / tool invocation (0 = no limit). NetMHC*pan reject -a lists over 1024 chars;
-    # over the shipped supported_alleles.json these caps give worst-case -a strings of ~630 / ~800 chars.
-    # MHCflurry has no CLI limit; its cap only parallelizes pan-species runs (HLA-all = ~11.6k alleles).
-    MHCFLURRY = 500
-    MHCNUGGETS = 0
-    MHCNUGGETSII = 0
-    NETMHCPAN = 45
-    NETMHCIIPAN = 35
-
-# Per-tool peptide length window, output-file extension, MHC class and CLI allele separator.
+# Per tool: peptide length window, output-file extension, MHC class, CLI allele separator and alleles per
+# invocation (0 = no limit). NetMHC*pan reject -a lists over 1024 chars; the caps keep worst-case lists at
+# ~630 / ~800 chars. MHCflurry has no CLI limit, its cap only parallelizes pan-species runs (HLA-all = ~11.6k alleles).
 TOOL_CONFIGS = {
-    "mhcflurry":    {"min": MinLength.MHCFLURRY.value,   "max": MaxLength.MHCFLURRY.value,          "ext": "csv", "mhc_class": "I",  "sep": ";"},
-    "mhcnuggets":   {"min": MinLength.MHCNUGGETS.value,  "max": MaxLength.MHCNUGGETS_CLASSI.value,  "ext": "tsv", "mhc_class": "I",  "sep": ";"},
-    "mhcnuggetsii": {"min": MinLength.MHCNUGGETS.value,  "max": MaxLength.MHCNUGGETS_CLASSII.value, "ext": "tsv", "mhc_class": "II", "sep": ";"},
-    "netmhcpan":    {"min": MinLength.NETMHCPAN.value,   "max": MaxLength.NETMHCPAN.value,          "ext": "tsv", "mhc_class": "I",  "sep": ","},
-    "netmhciipan":  {"min": MinLength.NETMHCIIPAN.value, "max": MaxLength.NETMHCIIPAN.value,        "ext": "tsv", "mhc_class": "II", "sep": ","},
+    "mhcflurry":    {"min": 5, "max": 15, "ext": "csv", "mhc_class": "I",  "sep": ";", "max_alleles": 500},
+    "mhcnuggets":   {"min": 5, "max": 15, "ext": "tsv", "mhc_class": "I",  "sep": ";", "max_alleles": 0},
+    "mhcnuggetsii": {"min": 5, "max": 30, "ext": "tsv", "mhc_class": "II", "sep": ";", "max_alleles": 0},
+    "netmhcpan":    {"min": 8, "max": 14, "ext": "tsv", "mhc_class": "I",  "sep": ",", "max_alleles": 45},
+    "netmhciipan":  {"min": 9, "max": 50, "ext": "tsv", "mhc_class": "II", "sep": ",", "max_alleles": 35},
 }
 
 class Arguments:
@@ -168,7 +146,7 @@ class Utils:
         for tool, alleles in tools_alleles.items():
             if not alleles:
                 continue
-            chunks = Utils.chunk_alleles(alleles, MaxNumberOfAlleles[tool.upper()].value)
+            chunks = Utils.chunk_alleles(alleles, TOOL_CONFIGS[tool]["max_alleles"])
             if len(chunks) > 1:
                 logging.info(f"Split {tool} alleles into {len(chunks)} chunks")
             sep = TOOL_CONFIGS[tool]["sep"]
@@ -193,8 +171,11 @@ class Utils:
 
 def main():
     args = Arguments()
-    sa_dict = json.load(open(args.supported_alleles_json))
+    with open(args.supported_alleles_json) as f:
+        sa_dict = json.load(f)
     entries = Utils.build_entries(Utils.resolve_alleles(args.alleles, args.tools, sa_dict), sa_dict)
+    if not entries:
+        raise ValueError(f"None of the alleles {args.alleles!r} are supported by any of the tools {args.tools}. Aborting..")
 
     df = pd.read_csv(args.input, sep="\t")
     df = df[df[args.peptide_col_name].apply(Utils.has_valid_aas)]
@@ -211,7 +192,11 @@ def main():
         if not df_tool.empty:
             entry["filename"] = Utils.write_input(entry, df_tool, args.peptide_col_name, args.prefix)
 
-    json.dump([e for e in entries if "filename" in e], open(f"{args.prefix}_allele_input.json", "w"))
+    written = [e for e in entries if "filename" in e]
+    if not written:
+        raise ValueError(f"No peptides within the length range of any MHC class {args.mhc_class} tool in {args.tools}. Aborting..")
+    with open(f"{args.prefix}_allele_input.json", "w") as f:
+        json.dump(written, f)
 
     versions = {"${task.process}": Version.get_versions([argparse, pd, mhcgnomes])}
     with open("versions.yml", "w") as f:

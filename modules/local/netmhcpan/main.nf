@@ -20,15 +20,10 @@ process NETMHCPAN {
     }
     def args    = task.ext.args ?: ''
     def prefix  = task.ext.prefix ?: "${meta.id}"
-    def alleles = alleles_input
+    // netMHCpan copies its install dir (NMHOME) and TMPDIR into fixed-size buffers (~95 chars) and aborts on long
+    // work dir paths, so it is run through a short /tmp symlink with TMPDIR pointed there. See #341.
 
     """
-    # netMHCpan formats the software directory (NMHOME, derived from the wrapper's own path) and
-    # TMPDIR into fixed-size C buffers and aborts with "buffer overflow detected" / "stack smashing
-    # detected" once they get too long (~95 chars for netMHCpan-4.2b, ~200 for netMHCIIpan-4.3).
-    # The staged `netmhcpan/` dir lives inside the Nextflow work dir, whose path easily exceeds that,
-    # so call the wrapper through a short symlink under /tmp (deliberately not \$TMPDIR, which
-    # may itself be long) and point TMPDIR there too. The symlink dir is removed on exit.
     nm=\$(mktemp -d /tmp/nm.XXXXXX)
     trap 'rm -rf "\$nm"' EXIT
     ln -s "\$PWD/netmhcpan" "\$nm/netmhcpan"
@@ -36,7 +31,7 @@ process NETMHCPAN {
 
     "\$nm/netmhcpan/netMHCpan" \
         -p $tsv \
-        -a $alleles \
+        -a $alleles_input \
         -xls \
         -xlsfile ${prefix}_predicted_netmhcpan.xls \
         $args

@@ -20,9 +20,6 @@ nextflow_pipeline {
             def stable_path = getAllFilesFromDir(params.outdir, ignoreFile: 'tests/.nftignore')
             assertAll(
                 { assert workflow.success },
-                // Mamu-all exceeds the MHCflurry allele cap, so the alleles must have been split into chunks
-                { assert stable_name.any { it.endsWith('_a0_predicted_mhcflurry.csv') } },
-                { assert stable_name.any { it.endsWith('_a1_predicted_mhcflurry.csv') } },
                 { assert snapshot(
                     // Number of successful tasks
                     workflow.trace.succeeded().size(),

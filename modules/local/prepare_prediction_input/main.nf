@@ -12,7 +12,7 @@ process PREPARE_PREDICTION_INPUT {
     path(supported_alleles_json)
 
     output:
-    tuple val(meta), path("*.json"), path("*.{csv,tsv}", arity: '1..*'), emit: prepared
+    tuple val(meta), path("*_allele_input.json"), path("*_input.{csv,tsv}", arity: '1..*'), emit: prepared // arity keeps a single file a list for the flatMap
     path "versions.yml"                                                , emit: versions
 
     script:
@@ -21,12 +21,10 @@ process PREPARE_PREDICTION_INPUT {
     stub:
     def prefix     = task.ext.prefix ?: "${meta.id}"
     """
-    echo '[]' > ${prefix}_allele_input.json
     touch ${prefix}_mhcflurry_input.csv
     touch ${prefix}_mhcnuggets_input.tsv
-    touch ${prefix}_mhcnuggetsii_input.tsv
-    touch ${prefix}_netmhcpan_input.tsv
-    touch ${prefix}_netmhciipan_input.tsv
+    echo '[{"tool": "mhcflurry", "alleles": "HLA-A*01:01", "chunk_id": "", "alleles_input": "HLA-A*01:01", "filename": "${prefix}_mhcflurry_input.csv"},
+           {"tool": "mhcnuggets", "alleles": "HLA-A*01:01", "chunk_id": "", "alleles_input": "HLA-A01:01", "filename": "${prefix}_mhcnuggets_input.tsv"}]' > ${prefix}_allele_input.json
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
