@@ -32,12 +32,14 @@ process MHCFLURRY {
     export MHCFLURRY_DATA_DIR=./mhcflurry-data
     export MHCFLURRY_DOWNLOADS_CURRENT_RELEASE=2.2.0
 
-    if ! mhcflurry-downloads info | grep -qE '\\bYES\\b'; then
-        for attempt in 1 2 3; do
-            mhcflurry-downloads fetch models_class1_presentation && break
-            [ \$attempt -lt 3 ] && sleep 30 || exit 1
-        done
-    fi
+    # A fetch interrupted mid-extraction leaves a partial dir that mhcflurry treats as downloaded, so check the manifest
+    models=\$MHCFLURRY_DATA_DIR/\$MHCFLURRY_DOWNLOADS_CURRENT_RELEASE/models_class1_presentation
+    for attempt in 1 2 3; do
+        [ -f "\$models/models/weights.csv" ] && break
+        rm -rf "\$models"
+        mhcflurry-downloads fetch models_class1_presentation || sleep 30
+    done
+    [ -f "\$models/models/weights.csv" ] || { echo "MHCflurry model download failed" >&2; exit 1; }
 
     mhcflurry-predict \\
         $csv \\
