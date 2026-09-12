@@ -19,12 +19,14 @@ process PREPARE_PREDICTION_INPUT {
     template "prepare_prediction_input.py"
 
     stub:
-    def prefix     = task.ext.prefix ?: "${meta.id}"
+    def prefix  = task.ext.prefix ?: "${meta.id}"
+    def entries = params.tools.tokenize(',').collect { tool ->
+        def ext = tool == 'mhcflurry' ? 'csv' : 'tsv'
+        """{"tool": "${tool}", "alleles": "HLA-A*01:01", "chunk_id": "", "alleles_input": "HLA-A*01:01", "filename": "${prefix}_${tool}_input.${ext}"}"""
+    }
     """
-    touch ${prefix}_mhcflurry_input.csv
-    touch ${prefix}_mhcnuggets_input.tsv
-    echo '[{"tool": "mhcflurry", "alleles": "HLA-A*01:01", "chunk_id": "", "alleles_input": "HLA-A*01:01", "filename": "${prefix}_mhcflurry_input.csv"},
-           {"tool": "mhcnuggets", "alleles": "HLA-A*01:01", "chunk_id": "", "alleles_input": "HLA-A01:01", "filename": "${prefix}_mhcnuggets_input.tsv"}]' > ${prefix}_allele_input.json
+    touch ${params.tools.tokenize(',').collect { tool -> "${prefix}_${tool}_input." + (tool == 'mhcflurry' ? 'csv' : 'tsv') }.join(' ')}
+    echo '[${entries.join(',')}]' > ${prefix}_allele_input.json
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

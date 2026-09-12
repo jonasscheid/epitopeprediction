@@ -1,7 +1,7 @@
 {
     "-profile test_mhcflurry": {
         "content": [
-            222,
+            223,
             {
                 "BCFTOOLS_STATS": {
                     "bcftools": "1.23.1"
@@ -21,6 +21,7 @@
                     "mhcgnomes": "1.8.6"
                 },
                 "MHCFLURRY": "2.1.4",
+                "MHCFLURRY_DOWNLOAD_MODELS": "2.1.4",
                 "SNPSIFT_SPLIT": {
                     "snpsift": "5.4c"
                 },

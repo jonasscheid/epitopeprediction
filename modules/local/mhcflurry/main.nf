@@ -13,7 +13,7 @@ process MHCFLURRY {
     }
 
     input:
-    tuple val(meta), path(csv)
+    tuple val(meta), path(csv), path(models)
 
     output:
     tuple val(meta), path("*.csv"), emit: predicted
@@ -27,19 +27,8 @@ process MHCFLURRY {
     def prefix = task.ext.prefix ?: "${meta.id}"
 
     """
-    # Create MHCflurry data directory to avoid permission issues
-    mkdir -p mhcflurry-data
-    export MHCFLURRY_DATA_DIR=./mhcflurry-data
+    export MHCFLURRY_DATA_DIR=$models
     export MHCFLURRY_DOWNLOADS_CURRENT_RELEASE=2.2.0
-
-    # A fetch interrupted mid-extraction leaves a partial dir that mhcflurry treats as downloaded, so check the manifest
-    models=\$MHCFLURRY_DATA_DIR/\$MHCFLURRY_DOWNLOADS_CURRENT_RELEASE/models_class1_presentation
-    for attempt in 1 2 3; do
-        [ -f "\$models/models/weights.csv" ] && break
-        rm -rf "\$models"
-        mhcflurry-downloads fetch models_class1_presentation || sleep 30
-    done
-    [ -f "\$models/models/weights.csv" ] || { echo "MHCflurry model download failed" >&2; exit 1; }
 
     mhcflurry-predict \\
         $csv \\

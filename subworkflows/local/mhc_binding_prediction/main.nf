@@ -4,6 +4,7 @@
 
 include { PREPARE_PREDICTION_INPUT                   } from '../../../modules/local/prepare_prediction_input'
 include { MHCFLURRY                                  } from '../../../modules/local/mhcflurry'
+include { MHCFLURRY_DOWNLOAD_MODELS                  } from '../../../modules/local/mhcflurry_download_models'
 include { MHCNUGGETS;
         MHCNUGGETS as MHCNUGGETSII                   } from '../../../modules/local/mhcnuggets'
 include { NETMHCPAN                                  } from '../../../modules/local/netmhcpan'
@@ -62,9 +63,13 @@ workflow MHC_BINDING_PREDICTION {
             }
             .set{ ch_prediction_input }
 
-        MHCFLURRY ( ch_prediction_input.mhcflurry.map { meta, _alleles_input, file -> [meta, file] } )
-        ch_versions = ch_versions.mix(MHCFLURRY.out.versions)
-        ch_binding_predictors_out = ch_binding_predictors_out.mix(MHCFLURRY.out.predicted)
+        if ( "mhcflurry" in tools.tokenize(",") )
+        {
+            MHCFLURRY_DOWNLOAD_MODELS()
+            MHCFLURRY ( ch_prediction_input.mhcflurry.map { meta, _alleles_input, file -> [meta, file] }.combine(MHCFLURRY_DOWNLOAD_MODELS.out.models) )
+            ch_versions = ch_versions.mix(MHCFLURRY_DOWNLOAD_MODELS.out.versions, MHCFLURRY.out.versions)
+            ch_binding_predictors_out = ch_binding_predictors_out.mix(MHCFLURRY.out.predicted)
+        }
 
         MHCNUGGETS ( ch_prediction_input.mhcnuggets )
         ch_versions = ch_versions.mix(MHCNUGGETS.out.versions)
