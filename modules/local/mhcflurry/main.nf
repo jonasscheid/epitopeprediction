@@ -32,9 +32,11 @@ process MHCFLURRY {
     export MHCFLURRY_DATA_DIR=./mhcflurry-data
     export MHCFLURRY_DOWNLOADS_CURRENT_RELEASE=2.2.0
 
-    # Check if models are already available
     if ! mhcflurry-downloads info | grep -qE '\\bYES\\b'; then
-        mhcflurry-downloads fetch models_class1_presentation
+        for attempt in 1 2 3; do
+            mhcflurry-downloads fetch models_class1_presentation && break
+            [ \$attempt -lt 3 ] && sleep 30 || exit 1
+        done
     fi
 
     mhcflurry-predict \\

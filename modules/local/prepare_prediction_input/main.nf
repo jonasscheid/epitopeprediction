@@ -12,7 +12,7 @@ process PREPARE_PREDICTION_INPUT {
     path(supported_alleles_json)
 
     output:
-    tuple val(meta), path("*_allele_input.json"), path("*_input.{csv,tsv}", arity: '1..*'), emit: prepared // arity keeps a single file a list for the flatMap
+    tuple val(meta), path("*_allele_input.json"), path("*_input.{csv,tsv}", arity: '1..*'), emit: prepared // arity: a single file must still arrive as a list
     path "versions.yml"                                                , emit: versions
 
     script:

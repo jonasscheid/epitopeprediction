@@ -18,9 +18,7 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
-# Per tool: peptide length window, output-file extension, MHC class, CLI allele separator and alleles per
-# invocation (0 = no limit). NetMHC*pan reject -a lists over 1024 chars; the caps keep worst-case lists at
-# ~630 / ~800 chars. MHCflurry has no CLI limit, its cap only parallelizes pan-species runs (HLA-all = ~11.6k alleles).
+# max_alleles per invocation (0 = unlimited): NetMHC*pan reject -a lists over 1024 chars, MHCflurry's cap only parallelizes pan-species runs
 TOOL_CONFIGS = {
     "mhcflurry":    {"min": 5, "max": 15, "ext": "csv", "mhc_class": "I",  "sep": ";", "max_alleles": 500},
     "mhcnuggets":   {"min": 5, "max": 15, "ext": "tsv", "mhc_class": "I",  "sep": ";", "max_alleles": 0},
@@ -183,7 +181,6 @@ def main():
     if df.empty:
         raise ValueError("No peptides left after applying MHC class length filters! Aborting..")
 
-    # Write one input file per (tool, chunk) whose tool runs for this sample's MHC class.
     for entry in entries:
         config = TOOL_CONFIGS[entry["tool"]]
         if config["mhc_class"] != args.mhc_class:

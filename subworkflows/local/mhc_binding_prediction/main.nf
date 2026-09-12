@@ -34,12 +34,10 @@ workflow MHC_BINDING_PREDICTION {
 
         validate_tools_param(tools)
 
-        // SPLIT_PEPTIDES already names its chunks <sample>[_<split>]_c<N>, which is unique across the run
         ch_peptides
             .map { meta, file -> [meta + [file_id: file.baseName], file] }
             .set { ch_peptides_to_predict }
 
-        // Fan out one tuple per (tool, chunk) entry from the emitted JSON manifest.
         PREPARE_PREDICTION_INPUT( ch_peptides_to_predict, supported_alleles_json)
             .prepared
             .flatMap { meta, tool_chunks, files ->
@@ -49,7 +47,7 @@ workflow MHC_BINDING_PREDICTION {
                     [meta + [tool: entry.tool,
                              alleles_supported: entry.alleles,
                              source_file_id: meta.file_id,
-                             n_prediction_files: entries.size(), // lets MERGE_PREDICTIONS start once this source file's chunks are in
+                             n_prediction_files: entries.size(),
                              file_id: entry.chunk_id ? "${meta.file_id}_${entry.chunk_id}" : meta.file_id],
                      entry.alleles_input,
                      files_by_name[entry.filename]]
@@ -64,7 +62,6 @@ workflow MHC_BINDING_PREDICTION {
             }
             .set{ ch_prediction_input }
 
-        // MHCflurry encodes alleles inline in its CSV input, so it doesn't need alleles_input.
         MHCFLURRY ( ch_prediction_input.mhcflurry.map { meta, _alleles_input, file -> [meta, file] } )
         ch_versions = ch_versions.mix(MHCFLURRY.out.versions)
         ch_binding_predictors_out = ch_binding_predictors_out.mix(MHCFLURRY.out.predicted)
@@ -93,9 +90,7 @@ workflow MHC_BINDING_PREDICTION {
             ch_binding_predictors_out = ch_binding_predictors_out.mix(NETMHCIIPAN.out.predicted)
         }
 
-        // Regroup predictor outputs by the original (pre-chunk) peptide file, one MERGE task per source.
-        // groupKey carries the expected number of files so groupTuple emits as soon as a source file is complete
-        // instead of waiting for every prediction task in the run.
+        // Regroup chunks per source file; the sized groupKey lets MERGE start before all predictions are done
         ch_binding_predictors_out
             .map { meta, file ->
                 def regroup_meta = meta.subMap(meta.keySet() - ['alleles_supported', 'tool', 'source_file_id', 'n_prediction_files']) + [file_id: meta.source_file_id]
@@ -158,4 +153,3 @@ def parse_netmhc_params(tool_name, netmhc_software_meta) {
     ])
     return ch_netmhc_exe
 }
-

@@ -144,8 +144,7 @@ class PredictionResult:
         |    ...   |   ...   |  ...  |  ...  |  ...   |     ...   |
         +----------+---------+-------+-------+--------+-----------+
         """
-        # Predictor modules name their output <file_id>_predicted_<tool>.<ext>; match on that suffix
-        # rather than on substrings of the whole path, which a sample id could contain.
+        # Output files are named <file_id>_predicted_<tool>.<ext>
         self.predictor = Path(self.file_path).stem.rsplit('_predicted_', 1)[-1]
         formatters = {
             'mhcflurry': self._format_mhcflurry_prediction,

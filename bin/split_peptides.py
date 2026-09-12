@@ -14,7 +14,6 @@ from pathlib import Path
 def split_peptides(input_file, prefix, min_size, max_chunks):
     """Splits the peptide input file into smaller chunks in a single pass."""
     input_path = Path(input_file)
-    # Dots in the prefix would be re-split by downstream basename handling
     prefix = prefix.replace(".", "_")
 
     with input_path.open("r") as infile:

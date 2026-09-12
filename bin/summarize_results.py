@@ -75,8 +75,7 @@ class MultiQC:
     def write_mqc_rank_distribution(df, input_basename, peptide_col_name):
         df_valid = df.dropna(subset=['predictor'])
         best_predictor = df_valid.groupby(['binder', 'predictor']).size().idxmax(skipna=True)[1]
-        # Some predictors emit NaN ranks for certain peptide×allele pairs (e.g. NetMHCIIpan).
-        # Drop them up front so idxmin never returns NaN and crashes the .loc lookup.
+        # NetMHCIIpan can emit NaN ranks; drop them so idxmin never returns NaN
         best_rank = (
             df_valid[(df_valid['predictor'] == best_predictor) & df_valid['rank'].notna()]
                 .groupby([peptide_col_name, 'allele'], group_keys=False)

@@ -29,7 +29,6 @@ class Arguments:
         self.input = "$tsv"
         self.prefix = "$task.ext.prefix" if "$task.ext.prefix" != "null" else "$meta.id"
         self.mhc_class = "$meta.mhc_class"
-        # Canonical for output column + CLI-ready form (e.g. HLA-A01:01) from prepare_prediction_input.
         self.alleles = "$meta.alleles_supported".split(";")
         self.alleles_input = "$alleles_input".split(";")
         self.parse_ext_args("$task.ext.args")
@@ -93,7 +92,6 @@ def main():
     # Predict and load written tsv file
     predicted_df = []
     for allele, mhcnuggets_allele in zip(args.alleles, args.alleles_input):
-        # Sanitize filename — class II heterodimer alleles contain '/' and '*' which break paths.
         safe_allele = allele.replace('/', '_').replace('*', '')
         # MHCnuggets cannot compute ranks for mouse alleles
         compute_rank = 'H-2' not in mhcnuggets_allele

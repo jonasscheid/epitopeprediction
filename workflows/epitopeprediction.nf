@@ -136,7 +136,6 @@ workflow EPITOPEPREDICTION {
     */
 
     // decide between the split_by_variants and snpsift_split (by chromosome)
-    // split_id is the coordinate distinguishing the splits of one sample; it keeps downstream file names unique without repeating the sample id
     if (params.split_by_variants) {
         VARIANT_SPLIT( ch_samples_uncompressed.variant )
             .splitted
@@ -281,11 +280,7 @@ workflow EPITOPEPREDICTION {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-// Coordinate that distinguishes the splits of one sample, derived from how each splitter names its outputs:
-//   split_vcf_by_variants.py  <stem>_v<n>.vcf        -> v<n>
-//   SnpSift split             <stem>.<chromosome>.vcf -> <chromosome>
-//   fasta2peptides.py         <id>_length_<k>.tsv     -> length_<k>
-// Keeps downstream file names unique without repeating the sample id.
+// <stem>_v<n>.vcf -> v<n> | <stem>.<chr>.vcf -> <chr> | <id>_length_<k>.tsv -> length_<k>
 def splitId(meta, file) {
     def stem = file.baseName
     if (stem ==~ /.*_v\d+/) {
