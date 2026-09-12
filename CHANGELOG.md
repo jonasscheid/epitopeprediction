@@ -48,7 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### `Changed`
 
 - [#341](https://github.com/nf-core/epitopeprediction/pull/341) `MERGE_PREDICTIONS` groups predictor outputs with a sized `groupKey` so merging starts as soon as one source file's chunks are complete, and no longer receives the unused per-file allele lists ([@jonasscheid](https://github.com/jonasscheid/))
-- [#341](https://github.com/nf-core/epitopeprediction/pull/341) Added `tests/netmhcpan_allele_chunking.nf.test`, a 50-allele NetMHCpan run that exercises allele chunking end to end ([@jonasscheid](https://github.com/jonasscheid/))
+- [#341](https://github.com/nf-core/epitopeprediction/pull/341) Added `test_allele_chunking` profile and nf-test (`Mamu-all` on MHCflurry, ~650 alleles split into 500-allele chunks) plus `HLA-all` class I and II samples in the full test samplesheet ([@jonasscheid](https://github.com/jonasscheid/))
 - [#316](https://github.com/nf-core/epitopeprediction/pull/316) Added parameter `--biomart_dump` in `epaa.py` ([@SusiJo](https://github.com/SusiJo/)).
 - [#320](https://github.com/nf-core/epitopeprediction/pull/320) Set default genome reference to GRCh38 ([@jonasscheid](https://github.com/jonasscheid/)).
 - Remove `--ensembl_dataset` parameter; Ensembl dataset is now auto-detected from `--genome_reference` (supports human and mouse genomes, or direct Ensembl URL).

@@ -35,7 +35,8 @@ class MaxLength(Enum):
 class MaxNumberOfAlleles(Enum):
     # Alleles per chunk / tool invocation (0 = no limit). NetMHC*pan reject -a lists over 1024 chars;
     # over the shipped supported_alleles.json these caps give worst-case -a strings of ~630 / ~800 chars.
-    MHCFLURRY = 0
+    # MHCflurry has no CLI limit; its cap only parallelizes pan-species runs (HLA-all = ~11.6k alleles).
+    MHCFLURRY = 500
     MHCNUGGETS = 0
     MHCNUGGETSII = 0
     NETMHCPAN = 45
